@@ -436,7 +436,7 @@ animations = [{
 }],
 "loop": 1,
 "name": &"default",
-"speed": 5.0
+"speed": 20.0
 }, {
 "frames": [{
 "duration": 1.0,
@@ -623,7 +623,10 @@ animations = [{
 "speed": 5.0
 }]
 
-[node name="Seal" type="Node2D" unique_id=1646509292]
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_c57yv"]
+size = Vector2(16, 14)
+
+[node name="CharacterBody2D" type="CharacterBody2D" unique_id=2826275]
 z_index = 1
 scale = Vector2(4, 4)
 
@@ -633,5 +636,8 @@ Idle FPS's are set to 2 (Frame 0 at x2.0 and 1 at x0.5).
 Rest are kept at 5 FPS."
 texture_filter = 1
 sprite_frames = SubResource("SpriteFrames_q1jeg")
-animation = &"backward_idle"
-frame_progress = 0.93905854
+animation = &"forward_swim"
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1165230929]
+position = Vector2(0, 1)
+shape = SubResource("RectangleShape2D_c57yv")

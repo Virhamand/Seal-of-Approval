@@ -294,7 +294,7 @@ animations = [{
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_q1jeg"]
 size = Vector2(12, 14)
 
-[node name="Chef" type="CharacterBody2D" unique_id=1481587763]
+[node name="CharacterBody2D" type="CharacterBody2D" unique_id=1481587763]
 z_index = 1
 scale = Vector2(2, 2)
 script = ExtResource("1_1uxjn")
@@ -304,7 +304,8 @@ editor_description = "Idle is 3.0 FPS.
 Walk is 8.0 FPS."
 texture_filter = 1
 sprite_frames = SubResource("SpriteFrames_q1jeg")
-frame_progress = 0.09034645
+frame = 5
+frame_progress = 0.9869997
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1028983235]
 position = Vector2(0, 1)
