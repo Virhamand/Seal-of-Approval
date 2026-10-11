@@ -226,6 +226,7 @@ func _return_to_main_menu() -> void:
 
 # ---------------------------------------------------------------- sounds
 func _build_sounds() -> void:
+	sfx_player.bus = Settings.SFX_BUS
 	add_child(sfx_player)
 
 

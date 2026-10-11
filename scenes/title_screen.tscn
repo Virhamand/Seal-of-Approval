@@ -1,5 +1,7 @@
 [gd_scene format=3 uid="uid://b5pnrx1bu27dt"]
 
+[ext_resource type="PackedScene" uid="uid://wm82gd01mf0g" path="res://sprites/seal.tscn" id="1_fgkus"]
+
 [node name="TitleScreen" type="CanvasLayer" unique_id=262031101]
 
 [node name="ColorRect" type="ColorRect" parent="." unique_id=639277794]
@@ -14,3 +16,22 @@ offset_right = 320.0
 offset_bottom = 180.0
 grow_horizontal = 2
 grow_vertical = 2
+
+[node name="CharacterBody2D" parent="." unique_id=2826275 instance=ExtResource("1_fgkus")]
+position = Vector2(541, 178)
+
+[node name="Button" type="Button" parent="." unique_id=1736435321]
+offset_left = 231.0
+offset_top = 225.0
+offset_right = 396.0
+offset_bottom = 274.0
+text = "Start"
+
+[node name="Label" type="Label" parent="." unique_id=747073376]
+offset_left = 202.0
+offset_top = 105.0
+offset_right = 441.0
+offset_bottom = 153.0
+theme_override_colors/font_color = Color(0.0026177876, 0.0026177883, 0.0026177873, 1)
+text = "SEAL OF APPROVAL"
+horizontal_alignment = 1

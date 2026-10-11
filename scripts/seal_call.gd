@@ -35,7 +35,7 @@ func _ready() -> void:
 	var idx := AudioServer.bus_count
 	AudioServer.add_bus(idx)
 	AudioServer.set_bus_name(idx, BUS)
-	AudioServer.set_bus_send(idx, "Master")
+	AudioServer.set_bus_send(idx, Settings.SFX_BUS)   # follows the Sound Effects volume
 	AudioServer.add_bus_effect(idx, _filter)
 
 	var looped: AudioStreamMP3 = SOUND.duplicate()
@@ -47,11 +47,13 @@ func _ready() -> void:
 	var once: AudioStreamMP3 = SOUND.duplicate()
 	once.loop = false
 	wah_player.stream = once
+	wah_player.bus = Settings.SFX_BUS
 	add_child(wah_player)
 
 	var slap: AudioStreamMP3 = BELLY_SLAP.duplicate()
 	slap.loop = true
 	slap_player.stream = slap
+	slap_player.bus = Settings.SFX_BUS
 	add_child(slap_player)
 
 

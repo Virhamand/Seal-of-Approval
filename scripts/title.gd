@@ -1,86 +1,125 @@
 extends Node2D
-## Title screen: the beach in the background, the game's name at the top and
-## a Start button in the middle. Start begins a new game on day 1.
+## Title screen: solid palette background, the game's name at the top, Start and
+## Settings buttons in the middle, the seal slapping its belly below them and the
+## menu's food rocking left and right on both sides.
 
 const GAME_SCENE := "res://scenes/game.tscn"
-const BEACH := preload("res://scenes/main.tscn")
 const SEAL := preload("res://sprites/seal.tscn")
+const SETTINGS_MENU := preload("res://scripts/settings_menu.gd")
 
-## Where the camera looks on the beach (the restaurant and the shore).
-@export var view_center := Vector2(528, 190)
+## The seal is drawn at this scale on the title screen only.
+@export var seal_scale := 6.0
+## Where the seal stands (screen pixels, 640x360 view).
+@export var seal_position := Vector2(320, 296)
+
+## Food icons: drawn at this scale, rocking this many degrees each way, one swing per `food_swing_time` seconds.
+@export var food_scale := 3.0
+@export var food_angle := 12.0
+@export var food_swing_time := 1.2
+## Where each food sits (screen pixels), in GameState.RECIPE_ICONS order.
+@export var food_positions: Array[Vector2] = [
+	Vector2(80, 110), Vector2(170, 175), Vector2(80, 240), Vector2(170, 305),
+	Vector2(560, 110), Vector2(470, 175), Vector2(560, 240), Vector2(470, 305),
+]
 
 var start_button: Button
+var settings_button: Button
+var seal: CharacterBody2D
+var _ui: CanvasLayer
+var _settings: Control
 
 
 func _ready() -> void:
-	_build_backdrop()
+	# solid background behind everything
+	var bg_layer := CanvasLayer.new()
+	bg_layer.layer = -1
+	add_child(bg_layer)
+	var bg := ColorRect.new()
+	bg.color = UiTheme.background
+	bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	bg_layer.add_child(bg)
+
+	seal = SEAL.instantiate()
+	seal.can_move = false
+	seal.auto_animate = false
+	seal.scale = Vector2(seal_scale, seal_scale)
+	seal.position = seal_position
+	add_child(seal)
+	seal.sprite.play("belly_slap")
+
+	_build_food()
 	_build_ui()
 
 
-## The beach scenery only (its gameplay script is removed so nothing runs).
-func _build_backdrop() -> void:
-	var beach := BEACH.instantiate()
-	beach.set_script(null)
-	add_child(beach)
-	var seal := SEAL.instantiate()
-	seal.can_move = false
-	seal.position = view_center + Vector2(150, 110)
-	beach.add_child(seal)
-	seal.face("down")
-	var camera := Camera2D.new()
-	camera.position = view_center
-	# stay inside the beach map
-	var ground: TileMapLayer = beach.get_node("Ground")
-	var r := ground.get_used_rect()
-	var cell := Vector2(ground.tile_set.tile_size) * ground.scale
-	camera.limit_left = int(r.position.x * cell.x)
-	camera.limit_top = int(r.position.y * cell.y)
-	camera.limit_right = int(r.end.x * cell.x)
-	camera.limit_bottom = int(r.end.y * cell.y)
-	add_child(camera)
-	camera.make_current()
+## The menu items, each rocking left and right (alternate ones start the other way).
+func _build_food() -> void:
+	var names: Array = GameState.RECIPE_ICONS.keys()
+	for i in mini(names.size(), food_positions.size()):
+		var food := Sprite2D.new()
+		food.texture = GameState.recipe_icon(names[i])
+		food.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		food.scale = Vector2(food_scale, food_scale)
+		food.position = food_positions[i]
+		add_child(food)
+		var dir := 1.0 if i % 2 == 0 else -1.0
+		food.rotation_degrees = -food_angle * dir
+		var rock := create_tween().set_loops()
+		rock.tween_property(food, "rotation_degrees", food_angle * dir, food_swing_time) \
+				.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+		rock.tween_property(food, "rotation_degrees", -food_angle * dir, food_swing_time) \
+				.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 
 
 func _build_ui() -> void:
-	var layer := CanvasLayer.new()
-	add_child(layer)
+	_ui = CanvasLayer.new()
+	add_child(_ui)
 	var root := Control.new()
 	root.theme = UiTheme.theme
 	root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	layer.add_child(root)
-	var dim := ColorRect.new()
-	dim.color = Color(UiTheme.background, 0.35)
-	dim.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	dim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	root.add_child(dim)
+	root.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_ui.add_child(root)
 
-	# big title on a banner, centred at the top
-	var banner := PanelContainer.new()
-	banner.set_anchors_and_offsets_preset(Control.PRESET_CENTER_TOP)
-	banner.grow_horizontal = Control.GROW_DIRECTION_BOTH
-	banner.offset_top = 32
-	root.add_child(banner)
-	var pad := MarginContainer.new()
-	for side in ["left", "right"]:
-		pad.add_theme_constant_override("margin_" + side, 16)
-	banner.add_child(pad)
+	# big title, centred at the top
 	var title := Label.new()
 	title.text = "Seal of Approval"
 	title.add_theme_font_size_override("font_size", 48)
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	pad.add_child(title)
+	title.set_anchors_and_offsets_preset(Control.PRESET_CENTER_TOP)
+	title.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	title.offset_top = 28
+	root.add_child(title)
 
-	# Start button in the middle
+	# Start (and Settings under it) in the middle
 	var center := CenterContainer.new()
 	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	center.offset_bottom = -40   # keep the buttons clear of the seal
+	center.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	root.add_child(center)
+	var buttons := VBoxContainer.new()
+	buttons.add_theme_constant_override("separation", 8)
+	center.add_child(buttons)
 	start_button = Button.new()
 	start_button.text = "Start"
 	start_button.add_theme_font_size_override("font_size", UiTheme.title_font_size)
 	start_button.custom_minimum_size = Vector2(140, 40)
 	start_button.pressed.connect(start_game)
-	center.add_child(start_button)
-	start_button.grab_focus()   # Enter / Space also start
+	buttons.add_child(start_button)
+	settings_button = Button.new()
+	settings_button.text = "Settings"
+	settings_button.custom_minimum_size = Vector2(140, 28)
+	settings_button.pressed.connect(open_settings)
+	buttons.add_child(settings_button)
+	start_button.grab_focus()   # Enter / Space start; arrow keys move between buttons
+
+
+func open_settings() -> void:
+	if _settings:
+		return
+	_settings = SETTINGS_MENU.new()
+	_settings.closed.connect(func():
+		_settings = null
+		settings_button.grab_focus())
+	_ui.add_child(_settings)
 
 
 func start_game() -> void:

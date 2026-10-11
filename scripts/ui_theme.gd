@@ -61,7 +61,28 @@ func rebuild() -> void:
 	t.set_stylebox("fill", "ProgressBar", box(border, border, 0))
 	t.set_color("font_color", "ProgressBar", text)
 
+	# volume sliders: track like a progress bar, a small square grabber
+	var track := box(surface, border, 1)
+	track.content_margin_top = 4
+	track.content_margin_bottom = 4
+	t.set_stylebox("slider", "HSlider", track)
+	var filled := box(border, border, 0)
+	filled.content_margin_top = 4
+	filled.content_margin_bottom = 4
+	t.set_stylebox("grabber_area", "HSlider", filled)
+	t.set_stylebox("grabber_area_highlight", "HSlider", filled)
+	t.set_icon("grabber", "HSlider", _grabber(background))
+	t.set_icon("grabber_highlight", "HSlider", _grabber(accent))
+
 	theme = t
+
+
+## 10x16 slider handle: `fill` with a border-coloured outline.
+func _grabber(fill: Color) -> Texture2D:
+	var img := Image.create(10, 16, false, Image.FORMAT_RGBA8)
+	img.fill(border)
+	img.fill_rect(Rect2i(1, 1, 8, 14), fill)
+	return ImageTexture.create_from_image(img)
 
 
 func box(bg: Color, edge: Color, width: int) -> StyleBoxFlat:
