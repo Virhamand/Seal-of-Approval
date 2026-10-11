@@ -1,7 +1,6 @@
 [gd_scene format=4 uid="uid://c8l7ypuxlrbfu"]
 
 [ext_resource type="TileSet" uid="uid://vrkj6ovm0kqd" path="res://tiles/interior_tileset.tres" id="1_tdg2f"]
-[ext_resource type="PackedScene" uid="uid://ds7lwk5anjkp0" path="res://sprites/chef.tscn" id="2_iw0ck"]
 
 [node name="Restaurant" type="Node2D" unique_id=1428568418]
 
@@ -24,8 +23,3 @@ tile_set = ExtResource("1_tdg2f")
 tile_set = ExtResource("1_tdg2f")
 
 [node name="untouched" type="TileMapLayer" parent="." unique_id=446241316]
-visible = false
-
-[node name="CharacterBody2D" parent="." unique_id=1481587763 instance=ExtResource("2_iw0ck")]
-z_index = 3
-position = Vector2(228, 151)

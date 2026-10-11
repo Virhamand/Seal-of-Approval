@@ -7,7 +7,6 @@ const RECIPE_POPUP := preload("res://scenes/new_recipe.tscn")
 const SMALL_WIN := preload("res://assets/sounds/small_win.wav")
 const SMALL_LOSS := preload("res://assets/sounds/small_loss.wav")
 const VICTORY := preload("res://assets/sounds/victory.wav")
-const BELLY_SLAP := preload("res://assets/sounds/seal-belly-slap.mp3")
 
 @onready var level_root: Node2D = $Level
 
@@ -23,8 +22,6 @@ var _rating_value: Label
 var _end_layer: CanvasLayer
 ## One-shot jingles (small win / small loss / victory).
 var sfx_player := AudioStreamPlayer.new()
-## The seal slapping its belly, on loop while talking to it.
-var slap_player := AudioStreamPlayer.new()
 
 
 func _ready() -> void:
@@ -72,7 +69,6 @@ func _show_state(s: GameState.State) -> void:
 	_update_recipe_popup()
 	_update_rating_bar()
 	_refresh_debug_ui()
-	_update_slap()
 
 
 func _on_restarted() -> void:
@@ -158,7 +154,6 @@ func _star_texture() -> Texture2D:
 func _show_end_screen() -> void:
 	if _end_layer:
 		return
-	_update_slap()
 	_play_sfx(VICTORY)
 	_end_layer = CanvasLayer.new()
 	_end_layer.layer = 20
@@ -201,10 +196,6 @@ func _show_end_screen() -> void:
 # ---------------------------------------------------------------- sounds
 func _build_sounds() -> void:
 	add_child(sfx_player)
-	var slap: AudioStreamMP3 = BELLY_SLAP.duplicate()
-	slap.loop = true
-	slap_player.stream = slap
-	add_child(slap_player)
 
 
 func _play_sfx(stream: AudioStreamWAV) -> void:
@@ -212,15 +203,6 @@ func _play_sfx(stream: AudioStreamWAV) -> void:
 	once.loop_mode = AudioStreamWAV.LOOP_DISABLED
 	sfx_player.stream = once
 	sfx_player.play()
-
-
-## Belly slaps play while talking to the seal (not over The End).
-func _update_slap() -> void:
-	var want := GameState.state == GameState.State.TALKING_TO_SEAL and not GameState.ending
-	if want and not slap_player.playing:
-		slap_player.play()
-	elif not want and slap_player.playing:
-		slap_player.stop()
 
 
 # ---------------------------------------------------------------- recipe pop-up
@@ -232,8 +214,7 @@ func _update_recipe_popup() -> void:
 		popup.recipe_name = GameState.last_recipe
 		popup.dismissed.connect(_on_recipe_dismissed)
 		_popup_layer.add_child(popup)
-		if GameState.previous_state == GameState.State.SEAL_MINI_GAME:
-			_play_sfx(SMALL_WIN if GameState.last_won else SMALL_LOSS)
+		_play_sfx(SMALL_WIN if GameState.last_won else SMALL_LOSS)   # every new recipe (day 1 too)
 	elif not want and popup != null:
 		popup.queue_free()
 		popup = null

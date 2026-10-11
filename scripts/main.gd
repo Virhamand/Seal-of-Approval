@@ -29,6 +29,8 @@ const SEAL := preload("res://sprites/seal.tscn")
 @export var pan_hold := 1.8
 ## Day 1: how long the seal stares at the chef after getting up, before the recipe pop-up.
 @export var stare_time := 1.5
+## Ending: how long the seal looks at the chef before turning forward to congratulate.
+@export var congrats_turn_delay := 0.8
 
 const FEED_TEXT := "[F] Feed malnourished seal Fries and Water"
 const PLAY_TEXT := "[F] Play"
@@ -67,6 +69,7 @@ func _ready() -> void:
 		chef.position = chef_start if remembered == Vector2.INF else remembered
 	add_child(chef)
 	tree_exiting.connect(func(): GameState.beach_chef_position = chef.position)
+	tree_exiting.connect(SealCall.belly_slap.bind(false))
 
 	seal = SEAL.instantiate()
 	seal.can_move = false
@@ -111,7 +114,7 @@ func enter_state(s: GameState.State) -> void:
 				if GameState.result_pending:
 					pass   # the recipe pop-up is shown by the game
 				elif GameState.is_rating_full():
-					_start_dialogue(CONGRATS)
+					_congratulate()
 				else:
 					# "[F] Play": a short "wah", then the mini-game
 					SealCall.wah()
@@ -172,9 +175,29 @@ func _seal_rect() -> Rect2:
 
 
 ## Walking into the restaurant door goes back to Running_restaurant (same day).
+## Locked on day 1 until the seal has been fed.
 func _on_door_entered(body: Node2D) -> void:
-	if body == chef and not _cutscene and GameState.state == GameState.State.WALKING_ON_BEACH:
+	if body == chef and not _cutscene and GameState.seal_fed \
+			and GameState.state == GameState.State.WALKING_ON_BEACH:
 		GameState.go.call_deferred(GameState.State.RUNNING_RESTAURANT)
+
+
+## Ending: the seal looks at the chef, turns to face forward, then slaps its
+## belly (animation + sound) through the congratulation lines.
+func _congratulate() -> void:
+	await get_tree().create_timer(congrats_turn_delay).timeout
+	if not is_inside_tree() or GameState.state != GameState.State.TALKING_TO_SEAL:
+		return
+	seal.auto_animate = false
+	seal.facing = "down"
+	seal.sprite.play("belly_slap")
+	SealCall.belly_slap(true)
+	_start_dialogue(CONGRATS)
+
+
+func _stop_belly_slap() -> void:
+	SealCall.belly_slap(false)
+	seal.face("down")
 
 
 func _start_mini_game() -> void:
@@ -323,6 +346,7 @@ func _next_dialogue_line() -> void:
 	_dialogue_index += 1
 	if _dialogue_index >= _dialogue_lines.size():
 		_end_dialogue()
+		_stop_belly_slap()
 		GameState.reach_ending()
 		return
 	_dialogue_label.text = _dialogue_lines[_dialogue_index]

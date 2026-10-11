@@ -7,6 +7,7 @@ extends Node
 ## chef walks towards the seal. wah() plays the short first bit of the call.
 
 const SOUND := preload("res://assets/sounds/harbor-seal-in-air.mp3")
+const BELLY_SLAP := preload("res://assets/sounds/seal-belly-slap.mp3")
 const BUS := "SealCall"
 
 ## Short "wah" = the first WAH_LENGTH seconds of the sound.
@@ -24,6 +25,8 @@ const BUS := "SealCall"
 
 var call_player := AudioStreamPlayer.new()
 var wah_player := AudioStreamPlayer.new()
+## Belly slaps, on loop while the seal congratulates the chef.
+var slap_player := AudioStreamPlayer.new()
 var _filter := AudioEffectLowPassFilter.new()
 
 
@@ -45,6 +48,11 @@ func _ready() -> void:
 	once.loop = false
 	wah_player.stream = once
 	add_child(wah_player)
+
+	var slap: AudioStreamMP3 = BELLY_SLAP.duplicate()
+	slap.loop = true
+	slap_player.stream = slap
+	add_child(slap_player)
 
 
 func _process(_delta: float) -> void:
@@ -76,6 +84,14 @@ func _apply(volume_db: float, cutoff_hz: float) -> void:
 func wah() -> void:
 	wah_player.play(0.0)
 	get_tree().create_timer(wah_length).timeout.connect(wah_player.stop)
+
+
+## Start/stop the looping belly-slap sound (played with the "belly_slap" animation).
+func belly_slap(on: bool) -> void:
+	if on and not slap_player.playing:
+		slap_player.play()
+	elif not on and slap_player.playing:
+		slap_player.stop()
 
 
 func is_calling() -> bool:
