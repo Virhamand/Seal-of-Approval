@@ -2,36 +2,65 @@
 
 [ext_resource type="Script" uid="uid://bt6c63758qp5c" path="res://scripts/new_recipe.gd" id="1_recipe"]
 
-[node name="NewRecipe" type="Node2D" unique_id=581086635]
+[node name="NewRecipe" type="CanvasLayer" unique_id=47397521]
 script = ExtResource("1_recipe")
 
 [node name="ColorRect" type="ColorRect" parent="." unique_id=847689194]
-offset_left = 87.0
-offset_top = 64.0
-offset_right = 554.0
-offset_bottom = 291.0
-scale = Vector2(0.9989717, 1)
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -233.5
+offset_top = -113.5
+offset_right = 233.5
+offset_bottom = 113.5
+grow_horizontal = 2
+grow_vertical = 2
+size_flags_horizontal = 4
+size_flags_vertical = 4
 color = Color(1, 1, 1, 0.654902)
 
 [node name="Label" type="Label" parent="." unique_id=1363087840]
-offset_left = 224.0
-offset_top = 98.0
-offset_right = 420.0
-offset_bottom = 143.0
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -98.0
+offset_top = 96.0
+offset_right = 98.0
+offset_bottom = 141.0
+grow_horizontal = 2
+size_flags_horizontal = 4
 theme_override_colors/font_color = Color(0, 0, 0, 1)
 text = "New Recipe Unlocked!"
+horizontal_alignment = 1
 
 [node name="RecipeName" type="Label" parent="." unique_id=293077752]
-offset_left = 292.0
-offset_top = 126.0
-offset_right = 336.0
-offset_bottom = 149.0
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -22.0
+offset_top = -44.5
+offset_right = 22.0
+offset_bottom = -21.5
+grow_horizontal = 2
+grow_vertical = 2
 theme_override_colors/font_color = Color(0, 0, 0, 1)
 text = "blank"
+horizontal_alignment = 1
 
 [node name="ColorRect2" type="ColorRect" parent="." unique_id=614902585]
-offset_left = 283.0
-offset_top = 161.0
-offset_right = 355.0
-offset_bottom = 229.0
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -32.0
+offset_top = -3.0
+offset_right = 32.0
+offset_bottom = 61.0
+grow_horizontal = 2
+grow_vertical = 2
 color = Color(0.47983426, 0.47983432, 0.47983426, 1)
