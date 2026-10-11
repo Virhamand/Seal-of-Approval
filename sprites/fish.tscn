@@ -1,0 +1,90 @@
+[gd_scene format=3 uid="uid://be2wrnviurft5"]
+
+[ext_resource type="Texture2D" uid="uid://drfdeud5pxeev" path="res://sprites/sprite_sheets/fish_B_snapper.png" id="1_qoreu"]
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_pr7wj"]
+atlas = ExtResource("1_qoreu")
+region = Rect2(0, 16, 16, 16)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_qwy24"]
+atlas = ExtResource("1_qoreu")
+region = Rect2(16, 16, 16, 16)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_ksk15"]
+atlas = ExtResource("1_qoreu")
+region = Rect2(32, 16, 16, 16)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_42yw6"]
+atlas = ExtResource("1_qoreu")
+region = Rect2(48, 16, 16, 16)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_k5haf"]
+atlas = ExtResource("1_qoreu")
+region = Rect2(0, 0, 16, 16)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_r3sph"]
+atlas = ExtResource("1_qoreu")
+region = Rect2(16, 0, 16, 16)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_q8pgu"]
+atlas = ExtResource("1_qoreu")
+region = Rect2(32, 0, 16, 16)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_tqhua"]
+atlas = ExtResource("1_qoreu")
+region = Rect2(48, 0, 16, 16)
+
+[sub_resource type="SpriteFrames" id="SpriteFrames_q1jeg"]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_pr7wj")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_qwy24")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_ksk15")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_42yw6")
+}],
+"loop": 1,
+"name": &"collect",
+"speed": 5.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_k5haf")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_r3sph")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_q8pgu")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_tqhua")
+}],
+"loop": 1,
+"name": &"swim",
+"speed": 5.0
+}]
+
+[sub_resource type="CapsuleShape2D" id="CapsuleShape2D_c57yv"]
+radius = 2.0541964
+height = 22.938515
+
+[node name="Fish" type="Area2D" unique_id=323447363]
+
+[node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="." unique_id=564989358]
+texture_filter = 1
+sprite_frames = SubResource("SpriteFrames_q1jeg")
+animation = &"swim"
+frame = 1
+frame_progress = 0.8831011
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1502813553]
+position = Vector2(0, 1)
+scale = Vector2(3.9592586, 0.5231376)
+shape = SubResource("CapsuleShape2D_c57yv")
