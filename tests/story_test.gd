@@ -41,10 +41,14 @@ func run() -> void:
 	GameState.go(S.WALKING_ON_BEACH)
 	await wait(0.2)
 	var beach: Node = game.level
-	check(beach._cutscene and not beach.chef.can_move, "camera pans, chef can't move")
-	await wait(2.0)
+	check(beach.chef.position.distance_to(beach._door_exit()) < 1.0, "chef starts at the restaurant door")
+	check(beach._cutscene and not beach.chef.can_move, "cutscene: chef can't move")
+	check(beach._shock != null and beach._shock.visible, "chef shows '!' in shock")
+	await shot("0_day1_shock")
+	check(String(beach.seal.sprite.animation) == "fall" and not beach.seal.sprite.is_playing(), "seal still standing before the camera arrives")
+	await wait(2.6)
 	await shot("1_day1_pan_to_seal")
-	check(String(beach.seal.sprite.animation) in ["fall", "die"], "seal plays fall/die (%s)" % beach.seal.sprite.animation)
+	check(String(beach.seal.sprite.animation) in ["fall", "die"] and beach.seal.sprite.is_playing(), "seal collapses as the camera arrives (%s)" % beach.seal.sprite.animation)
 	await wait(3.0)
 	check(not beach._cutscene and beach.chef.can_move, "pan finished, control back")
 	check(String(beach.seal.sprite.animation) == "die", "die animation looping")
@@ -59,7 +63,9 @@ func run() -> void:
 	check(GameState.state == S.TALKING_TO_SEAL, "F -> Talking_to_Seal")
 	check(beach.seal.sprite.animation == "fall" and beach.seal.sprite.frame == 2, "seal shows eyes-open frame")
 	await wait(2.0)
-	check(GameState.seal_fed and String(beach.seal.sprite.animation).begins_with("idle_"), "seal got up and idles")
+	check(String(beach.seal.sprite.animation).begins_with("idle_") and game.popup == null, "seal is up and stares (no pop-up yet)")
+	await wait(1.4)
+	check(GameState.seal_fed, "seal fed")
 	check(game.popup != null and game.popup.name_label.text == "Fish Sandwich", "recipe unlocked without mini-game")
 	await wait(0.5)
 	await shot("3_day1_recipe")
@@ -67,18 +73,37 @@ func run() -> void:
 	await wait(0.2)
 	check(GameState.state == S.RUNNING_RESTAURANT and GameState.day == 2, "next day")
 
-	print("== day 2: play the mini-game, rating hidden there")
+	print("== day 2: seal calls after service, play the mini-game")
+	check(not SealCall.is_calling(), "no call before service ends")
+	GameState.end_service()
+	await wait(0.1)
+	check(SealCall.is_calling() and SealCall.call_player.volume_db == SealCall.restaurant_volume_db, "muffled call heard in the restaurant")
 	GameState.go(S.WALKING_ON_BEACH)
 	await wait(0.2)
 	beach = game.level
 	check(not beach._cutscene, "no pan on a normal day")
+	var far_db: float = SealCall.call_player.volume_db
 	beach.chef.position = beach.seal.position + Vector2(-50, 0)
 	await wait(0.1)
+	var near_db: float = SealCall.call_player.volume_db
+	check(near_db > far_db + 6.0, "call gets louder near the seal (%.1f dB -> %.1f dB)" % [far_db, near_db])
 	check(beach._prompt_label.text == beach.PLAY_TEXT, "prompt says [F] Play")
 	click_seal(beach)
-	await wait(1.0)
+	await wait(0.1)
+	check(not SealCall.is_calling() and SealCall.wah_player.playing, "interacting stops the call and plays the wah")
+	await wait(0.6)
+	check(not SealCall.wah_player.playing, "wah is short")
+	await wait(0.4)
 	check(GameState.state == S.SEAL_MINI_GAME, "click on seal -> mini-game starts")
 	check(not game._rating_panel.visible, "rating bar hidden in the mini-game")
+	var sea: Node = game.level
+	check(sea._tutorial != null and not sea.started, "tutorial shown on the first mini-game")
+	await wait(1.0)
+	check(sea.time_left == sea.TIME_LIMIT and not sea.seal.can_move, "timer and seal wait for the tutorial")
+	await shot("2b_tutorial")
+	press_key()
+	await wait(0.5)
+	check(sea.started and sea.time_left < sea.TIME_LIMIT and sea.seal.can_move, "key press starts the game")
 	GameState.go(S.TALKING_TO_SEAL)   # debug skip
 	await wait(0.6)
 	press_key()
@@ -86,8 +111,8 @@ func run() -> void:
 
 	print("== fill rating and go to the beach")
 	var fill: Button = null
-	for b in game._buttons.get_parent().get_children():
-		if b is Button and b.text == "Fill rating":
+	for b in game.find_children("*", "Button", true, false):
+		if b.text == "Fill rating":
 			fill = b
 	fill.pressed.emit()
 	check(GameState.rating == 100 and game._rating_value.text == "100/100", "debug button fills the bar")

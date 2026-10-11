@@ -58,6 +58,7 @@ func run() -> void:
 				check(GameState.can_go(to) == expect, "%s%s %s" % ["(recipe waiting) " if pending else "", "allowed" if expect else "blocked", edge])
 	GameState.reset()
 	GameState.seal_fed = true
+	GameState.tutorial_seen = true
 
 	game = load("res://scenes/game.tscn").instantiate()
 	add_child(game)

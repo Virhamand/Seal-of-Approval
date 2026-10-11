@@ -30,6 +30,7 @@ func _ready() -> void:
 	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	picture.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	for l in [title, name_label]:
+		l.theme = UiTheme.theme
 		l.add_theme_color_override("font_color", UiTheme.text)
 	# centre both labels across the panel so long names fit
 	for l in [title, name_label]:
@@ -43,9 +44,9 @@ func _ready() -> void:
 		name_label.text = "No new recipe today"
 		picture.hide()
 	_hint = Label.new()
+	_hint.theme = UiTheme.theme
 	_hint.text = "Click or press any key to start the next day"
 	_hint.add_theme_color_override("font_color", UiTheme.text)
-	_hint.add_theme_font_size_override("font_size", 10)
 	_hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_hint.position = Vector2(panel.position.x, panel.position.y + panel.size.y - 28)
 	_hint.size.x = panel.size.x

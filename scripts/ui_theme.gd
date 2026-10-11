@@ -11,8 +11,13 @@ var accent := Color("#95BDD7")       # button hover
 var border := Color("#78A4CB")       # outlines, pressed buttons, progress fill
 var text := Color("#2B3A55")         # all text (dark so it reads on the light palette)
 
-var font_size := 12
+## Pixel font for every text. m5x7 is drawn for multiples of 16, so keep sizes at 16/32/48.
+var font_path := "res://assets/fonts/m5x7.ttf"
+var font_size := 16
+var title_font_size := 32
 var corner_radius := 3
+
+var font: Font
 
 ## The Godot Theme built from the colours above. Assign it to any Control's
 ## `theme` property and that Control and its children use it.
@@ -21,11 +26,20 @@ var theme: Theme
 
 func _ready() -> void:
 	rebuild()
+	# every Control in the game window inherits the theme (and so the font)
+	get_tree().root.theme = theme
 
 
 ## Rebuild `theme` after changing colours at runtime.
 func rebuild() -> void:
 	var t := Theme.new()
+	font = load(font_path)
+	if font is FontFile:
+		# crisp pixels: no smoothing or sub-pixel placement
+		font.antialiasing = TextServer.FONT_ANTIALIASING_NONE
+		font.hinting = TextServer.HINTING_NONE
+		font.subpixel_positioning = TextServer.SUBPIXEL_POSITIONING_DISABLED
+	t.default_font = font
 	t.default_font_size = font_size
 
 	var panel := box(background, border, 2)

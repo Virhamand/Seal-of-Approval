@@ -15,6 +15,10 @@ const CHEF := preload("res://sprites/chef.tscn")
 const SEAL := preload("res://sprites/seal.tscn")
 
 @export var chef_start := Vector2(560, 300)
+## The restaurant door's Area2D. Coming out of the restaurant puts the chef just below it.
+@export var door_area_path: NodePath = ^"Sprite2D/Area2D"
+## Extra gap between the bottom of the door area and the chef.
+@export var door_exit_gap := 10.0
 ## Where the seal waits. Leave at (0, 0) to place it automatically on the bottom shore.
 @export var seal_spot := Vector2.ZERO
 ## How close the chef must be to interact with the seal.
@@ -22,6 +26,8 @@ const SEAL := preload("res://sprites/seal.tscn")
 ## Camera pan timings (seconds).
 @export var pan_time := 1.4
 @export var pan_hold := 1.8
+## Day 1: how long the seal stares at the chef after getting up, before the recipe pop-up.
+@export var stare_time := 1.5
 
 const FEED_TEXT := "[F] Feed malnourished seal Fries and Water"
 const PLAY_TEXT := "[F] Play"
@@ -37,6 +43,8 @@ var seal: CharacterBody2D
 var camera := Camera2D.new()
 
 var _cutscene := false
+var _from_restaurant := false
+var _shock: PanelContainer
 var _prompt: PanelContainer
 var _prompt_label: Label
 var _dialogue_layer: CanvasLayer
@@ -46,9 +54,16 @@ var _dialogue_index := -1
 
 
 func _ready() -> void:
+	add_to_group("beach")
+	_from_restaurant = GameState.state == GameState.State.WALKING_ON_BEACH \
+			and GameState.previous_state == GameState.State.RUNNING_RESTAURANT
 	chef = CHEF.instantiate()
 	var remembered := GameState.beach_chef_position
-	chef.position = chef_start if remembered == Vector2.INF else remembered
+	var door := _door_exit()
+	if _from_restaurant and door != Vector2.INF:
+		chef.position = door   # just walked out of the restaurant
+	else:
+		chef.position = chef_start if remembered == Vector2.INF else remembered
 	add_child(chef)
 	tree_exiting.connect(func(): GameState.beach_chef_position = chef.position)
 
@@ -58,8 +73,11 @@ func _ready() -> void:
 	add_child(seal)
 	if GameState.seal_fed:
 		seal.face("down")
+	elif _from_restaurant:
+		_seal_still_standing()   # it collapses once the camera gets there
 	else:
-		_play_fainted()
+		seal.auto_animate = false
+		seal.sprite.play("die")
 
 	_build_prompt()
 	_setup_camera()
@@ -74,7 +92,10 @@ func enter_state(s: GameState.State) -> void:
 			if GameState.seal_fed:
 				seal.face("down")
 			if GameState.previous_state == GameState.State.RUNNING_RESTAURANT and _story_needs_seal():
-				_pan_to_seal()
+				if not GameState.seal_fed:
+					_shock_then_pan()
+				else:
+					_pan_to_seal()
 		GameState.State.TALKING_TO_SEAL:
 			chef.can_move = false
 			_prompt.hide()
@@ -88,8 +109,9 @@ func enter_state(s: GameState.State) -> void:
 				elif GameState.is_rating_full():
 					_start_dialogue(CONGRATS)
 				else:
-					# "[F] Play": a short beat, then the mini-game
-					get_tree().create_timer(0.6).timeout.connect(_start_mini_game)
+					# "[F] Play": a short "wah", then the mini-game
+					SealCall.wah()
+					get_tree().create_timer(0.8).timeout.connect(_start_mini_game)
 
 
 ## True when the seal is the reason to come to the beach right now.
@@ -151,6 +173,13 @@ func _start_mini_game() -> void:
 
 
 # ---------------------------------------------------------------- day-1 seal
+func _seal_still_standing() -> void:
+	seal.auto_animate = false
+	seal.sprite.play("fall")
+	seal.sprite.pause()
+	seal.sprite.frame = 0
+
+
 func _play_fainted() -> void:
 	seal.auto_animate = false
 	seal.sprite.play("fall")
@@ -181,11 +210,46 @@ func _feed_seal() -> void:
 		return
 	seal.auto_animate = true
 	seal.face(dir_name(chef.position - seal.position))
+	await get_tree().create_timer(stare_time).timeout   # it just looks at you for a moment
+	if not is_inside_tree():
+		return
 	GameState.feed_seal()
 
 
 # ---------------------------------------------------------------- camera pan
-func _pan_to_seal() -> void:
+## Day 1: the chef hops twice in shock with a "!" over his head, then the camera
+## pans to the seal, which collapses as the camera arrives.
+func _shock_then_pan() -> void:
+	_cutscene = true
+	chef.can_move = false
+	camera.position = _clamped(chef.position)
+	await get_tree().create_timer(stare_time).timeout
+	if _shock == null:
+		_shock = PanelContainer.new()
+		_shock.theme = UiTheme.theme
+		_shock.z_index = 10
+		_shock.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		var mark := Label.new()
+		mark.text = "!"
+		mark.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		_shock.add_child(mark)
+		add_child(_shock)
+	_shock.reset_size()
+	_shock.position = chef.position + Vector2(-_shock.size.x / 2, -20 - _shock.size.y)
+	_shock.show()
+	var spr: AnimatedSprite2D = chef.sprite
+	var hop := create_tween()
+	for i in 2:
+		hop.tween_property(spr, "position:y", -5.0, 0.12).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+		hop.tween_property(spr, "position:y", 0.0, 0.12).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+	hop.tween_interval(0.35)
+	hop.tween_callback(func():
+		_shock.hide()
+		_pan_to_seal(_play_fainted))
+
+
+## Pan to the seal, hold, pan back. `on_arrive` runs when the camera reaches the seal.
+func _pan_to_seal(on_arrive: Callable = Callable()) -> void:
 	_cutscene = true
 	chef.can_move = false
 	var target := _clamped(seal.position)
@@ -193,6 +257,8 @@ func _pan_to_seal() -> void:
 	camera.position = back
 	var t := create_tween()
 	t.tween_property(camera, "position", target, pan_time).set_trans(Tween.TRANS_SINE)
+	if on_arrive.is_valid():
+		t.tween_callback(on_arrive)
 	t.tween_interval(pan_hold)
 	t.tween_property(camera, "position", back, pan_time).set_trans(Tween.TRANS_SINE)
 	t.tween_callback(func():
@@ -230,7 +296,6 @@ func _start_dialogue(lines: Array) -> void:
 		panel.add_child(box)
 		var who := Label.new()
 		who.text = "Seal"
-		who.add_theme_font_size_override("font_size", 10)
 		box.add_child(who)
 		_dialogue_label = Label.new()
 		_dialogue_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -238,7 +303,6 @@ func _start_dialogue(lines: Array) -> void:
 		box.add_child(_dialogue_label)
 		var hint := Label.new()
 		hint.text = "Click or press any key"
-		hint.add_theme_font_size_override("font_size", 9)
 		hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 		box.add_child(hint)
 	_dialogue_layer.show()
@@ -267,10 +331,24 @@ func _build_prompt() -> void:
 	_prompt.z_index = 10
 	_prompt.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_prompt_label = Label.new()
-	_prompt_label.add_theme_font_size_override("font_size", 10)
 	_prompt.add_child(_prompt_label)
 	add_child(_prompt)
 	_prompt.hide()
+
+
+## Just below the restaurant door's Area2D (or Vector2.INF if there is no door).
+func _door_exit() -> Vector2:
+	var area := get_node_or_null(door_area_path) as Area2D
+	if area == null:
+		return Vector2.INF
+	var shape := area.get_node_or_null("CollisionShape2D") as CollisionShape2D
+	if shape == null:
+		return to_local(area.global_position) + Vector2(0, 24)
+	var half_h := 0.0
+	if shape.shape is RectangleShape2D:
+		half_h = (shape.shape as RectangleShape2D).size.y / 2.0 * absf(shape.global_scale.y)
+	# chef's feet: his collision box sits ~8 px below his centre at scale 2
+	return to_local(shape.global_position) + Vector2(0, half_h + door_exit_gap + 16)
 
 
 ## Middle of the lowest row of sand on the Ground layer, one tile up from the water.

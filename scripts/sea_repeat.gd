@@ -20,6 +20,10 @@ var bounds := Rect2()
 var caught := 0
 var finished := false
 var time_left := TIME_LIMIT
+## False while the first-time tutorial is showing: timer, fish and seal wait.
+var started := true
+var _tutorial: CanvasLayer
+var _tutorial_ready := false
 
 var _bar: ProgressBar
 var _count: Label
@@ -47,12 +51,14 @@ func _ready() -> void:
 
 func enter_state(_s: GameState.State) -> void:
 	seal.swim_mode = true
-	seal.can_move = not finished
+	if not GameState.tutorial_seen:
+		_show_tutorial()
+	seal.can_move = started and not finished
 	seal.face("down")   # player in control: start facing down
 
 
 func _process(delta: float) -> void:
-	if finished:
+	if finished or not started:
 		return
 	time_left = maxf(time_left - delta, 0.0)
 	_update_timer()
@@ -69,7 +75,7 @@ func _physics_process(_delta: float) -> void:
 
 ## Keep MAX_FISH fish in the sea and at least one of them on screen.
 func _ensure_fish() -> void:
-	if finished:
+	if finished or not started:
 		return
 	var alive := live_fish()
 	# A fish near the screen edge may scroll out next frame, so only count
@@ -201,6 +207,58 @@ func _build_hud() -> void:
 func _update_hud() -> void:
 	_bar.value = caught
 	_count.text = "%d/%d" % [caught, FISH_GOAL]
+
+
+# ---------------------------------------------------------------- tutorial
+## First mini-game only: how to play. Everything waits until it is dismissed.
+func _show_tutorial() -> void:
+	started = false
+	_tutorial = CanvasLayer.new()
+	_tutorial.layer = 15
+	add_child(_tutorial)
+	var dim := ColorRect.new()
+	dim.color = Color(UiTheme.text, 0.45)
+	dim.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	dim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_tutorial.add_child(dim)
+	var center := CenterContainer.new()
+	center.theme = UiTheme.theme
+	center.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_tutorial.add_child(center)
+	var panel := PanelContainer.new()
+	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	center.add_child(panel)
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 6)
+	panel.add_child(box)
+	var lines := [
+		["Catch the fish!", UiTheme.title_font_size],
+		["Move with WASD or the arrow keys.", 0],
+		["Catch %d fish in %d seconds." % [FISH_GOAL, int(TIME_LIMIT)], 0],
+		["Click or press any key to start", 0],
+	]
+	for l in lines:
+		var label := Label.new()
+		label.text = l[0]
+		label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		if l[1]:
+			label.add_theme_font_size_override("font_size", l[1])
+		box.add_child(label)
+	get_tree().create_timer(0.4).timeout.connect(func(): _tutorial_ready = true)
+
+
+func _unhandled_input(event: InputEvent) -> void:
+	if started or not _tutorial_ready:
+		return
+	var key: bool = event is InputEventKey and event.pressed and not event.echo
+	var click: bool = event is InputEventMouseButton and event.pressed
+	if key or click:
+		get_viewport().set_input_as_handled()
+		GameState.tutorial_seen = true
+		_tutorial.queue_free()
+		started = true
+		seal.can_move = true
 
 
 func _update_timer() -> void:

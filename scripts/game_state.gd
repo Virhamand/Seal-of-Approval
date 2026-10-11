@@ -48,6 +48,8 @@ signal result_ready
 signal rating_changed(value: int)
 signal ending_reached
 signal restarted
+## The restaurant finished serving everyone for the day (see end_service()).
+signal service_finished
 
 const RATING_MAX := 100
 
@@ -74,6 +76,12 @@ var ending := false
 var previous_state: State = State.RUNNING_RESTAURANT
 ## Where the chef stood on the beach last time (kept across visits).
 var beach_chef_position := Vector2.INF
+## Today's customers have all been served (the restaurant calls end_service()).
+var service_done := false
+## The player has interacted with the seal today (it stops calling).
+var seal_answered := false
+## The mini-game tutorial has been shown.
+var tutorial_seen := false
 
 
 func allowed_next() -> Array:
@@ -96,11 +104,15 @@ func go(to: State) -> bool:
 	var from := state
 	previous_state = from
 	state = to
+	if to == State.TALKING_TO_SEAL:
+		seal_answered = true
 	if from == State.SEAL_MINI_GAME and to == State.TALKING_TO_SEAL:
 		_finish_mini_game(_next_result_won)
 		_next_result_won = true
 	elif from == State.TALKING_TO_SEAL and to == State.RUNNING_RESTAURANT:
 		result_pending = false
+		service_done = false
+		seal_answered = false
 		day += 1
 		day_started.emit(day)
 	print("[GameState] day %d: %s -> %s" % [day, state_name(from), state_name(to)])
@@ -141,6 +153,21 @@ func is_rating_full() -> bool:
 	return rating >= RATING_MAX
 
 
+# ---------------------------------------------------------------- service
+## For the restaurant: call this once the last customer of the day is served.
+## From day 2 on, the seal starts calling from the shore.
+func end_service() -> void:
+	if service_done:
+		return
+	service_done = true
+	service_finished.emit()
+
+
+## Should the seal be making its call right now?
+func seal_calling() -> bool:
+	return seal_fed and day >= 2 and service_done and not seal_answered and not ending
+
+
 # ---------------------------------------------------------------- story
 ## Day 1: the player fed the fainted seal. Unlocks the first recipe and shows
 ## the recipe pop-up (the next day starts when it is dismissed).
@@ -179,6 +206,9 @@ func reset() -> void:
 	ending = false
 	previous_state = State.RUNNING_RESTAURANT
 	beach_chef_position = Vector2.INF
+	service_done = false
+	seal_answered = false
+	tutorial_seen = false
 	rating_changed.emit(rating)
 
 

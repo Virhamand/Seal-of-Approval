@@ -167,7 +167,7 @@ func _show_end_screen() -> void:
 	panel.add_child(box)
 	var title := Label.new()
 	title.text = "The End"
-	title.add_theme_font_size_override("font_size", 24)
+	title.add_theme_font_size_override("font_size", UiTheme.title_font_size)
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(title)
 	var days := Label.new()
@@ -215,16 +215,21 @@ func _build_debug_ui() -> void:
 	var box := VBoxContainer.new()
 	panel.add_child(box)
 	_label = Label.new()
-	_label.add_theme_font_size_override("font_size", 10)
 	box.add_child(_label)
 	_buttons = HBoxContainer.new()
 	box.add_child(_buttons)
 	var fill := Button.new()
 	fill.text = "Fill rating"
-	fill.add_theme_font_size_override("font_size", 10)
 	fill.focus_mode = Control.FOCUS_NONE
 	fill.pressed.connect(func(): GameState.set_rating(GameState.RATING_MAX))
-	box.add_child(fill)
+	var serve := Button.new()
+	serve.text = "Finish serving"
+	serve.focus_mode = Control.FOCUS_NONE
+	serve.pressed.connect(GameState.end_service)
+	var row := HBoxContainer.new()
+	row.add_child(fill)
+	row.add_child(serve)
+	box.add_child(row)
 
 
 func _refresh_debug_ui() -> void:
@@ -236,7 +241,6 @@ func _refresh_debug_ui() -> void:
 		b.text = GameState.state_name(next)
 		if GameState.result_pending and next == GameState.State.RUNNING_RESTAURANT:
 			b.text += " (new day)"
-		b.add_theme_font_size_override("font_size", 10)
 		b.focus_mode = Control.FOCUS_NONE   # so arrow keys / space never press it
 		b.pressed.connect(GameState.go.bind(next))
 		_buttons.add_child(b)

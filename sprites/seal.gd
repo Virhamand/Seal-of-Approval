@@ -1,6 +1,6 @@
 extends CharacterBody2D
 
-@export var speed := 120.0
+@export var speed := 140.0
 ## When false the seal ignores input and stands still. Set by the current game state.
 @export var can_move := true
 ## Movement animations use "swim_" in the sea mini-game, "galumph_" on land.
