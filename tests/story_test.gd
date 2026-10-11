@@ -43,6 +43,7 @@ func run() -> void:
 	var beach: Node = game.level
 	check(beach.chef.position.distance_to(beach._door_exit()) < 1.0, "chef starts at the restaurant door")
 	check(beach._cutscene and not beach.chef.can_move, "cutscene: chef can't move")
+	await wait(beach.stare_time)   # the chef stares at the shore before the shock
 	check(beach._shock != null and beach._shock.visible, "chef shows '!' in shock")
 	await shot("0_day1_shock")
 	check(String(beach.seal.sprite.animation) == "fall" and not beach.seal.sprite.is_playing(), "seal still standing before the camera arrives")
@@ -127,20 +128,25 @@ func run() -> void:
 	await wait(0.1)
 	check(beach._prompt_label.text == beach.TALK_TEXT, "prompt says [F] Talk")
 	press_interact()
-	await wait(0.3)
+	await wait(beach.congrats_turn_delay + 0.3)   # the seal looks at the chef, then turns forward
 	check(beach._dialogue_index == 0 and beach._dialogue_layer.visible, "congratulation dialogue")
 	await shot("5_congrats")
 	for i in beach.CONGRATS.size():
 		press_key()
 		await wait(0.1)
 	check(game._end_layer != null and GameState.ending, "The End screen")
+	await wait(1.0)   # rosette pops in
 	await shot("6_the_end")
 
-	print("== play again")
-	var again: Button = game._end_layer.find_children("*", "Button", true, false)[0]
-	again.pressed.emit()
-	await wait(0.3)
-	check(GameState.state == S.RUNNING_RESTAURANT and GameState.day == 1 and GameState.rating == 0 and not GameState.seal_fed, "fresh game")
+	print("== return to main menu")
+	var went_to_menu := [false]
+	game.go_to_main_menu = func(): went_to_menu[0] = true
+	var menu: Button = game._end_layer.find_children("*", "Button", true, false)[0]
+	check(menu.text == "Return to Main Menu", "end button says Return to Main Menu")
+	menu.pressed.emit()
+	await wait(0.1)
+	check(went_to_menu[0], "button goes to the title screen")
+	check(GameState.state == S.RUNNING_RESTAURANT and GameState.day == 1 and GameState.rating == 0 and not GameState.seal_fed, "game reset for a fresh start")
 
 
 func wait(t: float) -> void:

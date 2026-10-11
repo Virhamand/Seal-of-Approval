@@ -4,6 +4,8 @@ extends Node2D
 ## temporary debug buttons for the legal next states.
 
 const RECIPE_POPUP := preload("res://scenes/new_recipe.tscn")
+const TITLE_SCENE := "res://scenes/title.tscn"
+const ROSETTE := preload("res://sprites/sprite_sheets/rosette.png")
 const SMALL_WIN := preload("res://assets/sounds/small_win.wav")
 const SMALL_LOSS := preload("res://assets/sounds/small_loss.wav")
 const VICTORY := preload("res://assets/sounds/victory.wav")
@@ -20,6 +22,8 @@ var _rating_panel: Control
 var _rating_bar: ProgressBar
 var _rating_value: Label
 var _end_layer: CanvasLayer
+## What "Return to Main Menu" does (tests swap this out).
+var go_to_main_menu := func(): get_tree().change_scene_to_file(TITLE_SCENE)
 ## One-shot jingles (small win / small loss / victory).
 var sfx_player := AudioStreamPlayer.new()
 
@@ -166,9 +170,14 @@ func _show_end_screen() -> void:
 	center.theme = UiTheme.theme
 	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_end_layer.add_child(center)
+	# the end panel with the rosette to its right
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 16)
+	center.add_child(row)
 	var panel := PanelContainer.new()
 	panel.custom_minimum_size = Vector2(280, 0)
-	center.add_child(panel)
+	panel.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	row.add_child(panel)
 	var box := VBoxContainer.new()
 	box.alignment = BoxContainer.ALIGNMENT_CENTER
 	box.add_theme_constant_override("separation", 8)
@@ -178,19 +187,41 @@ func _show_end_screen() -> void:
 	title.add_theme_font_size_override("font_size", UiTheme.title_font_size)
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(title)
-	var days := Label.new()
-	days.text = "You reached %d rating in %d day%s." % [GameState.RATING_MAX, GameState.day, "" if GameState.day == 1 else "s"]
-	days.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	box.add_child(days)
-	var recipes := Label.new()
-	recipes.text = "Recipes on the menu: %d" % GameState.unlocked_recipes.size()
-	recipes.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	box.add_child(recipes)
-	var again := Button.new()
-	again.text = "Play again"
-	again.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	again.pressed.connect(GameState.restart)
-	box.add_child(again)
+	var earned := Label.new()
+	earned.text = "You have earned the"
+	earned.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	box.add_child(earned)
+	var seal_of_approval := Label.new()
+	seal_of_approval.text = "Seal of Approval"
+	seal_of_approval.add_theme_font_size_override("font_size", UiTheme.title_font_size)
+	seal_of_approval.add_theme_color_override("font_color", UiTheme.highlight)
+	seal_of_approval.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	box.add_child(seal_of_approval)
+	var menu := Button.new()
+	menu.text = "Return to Main Menu"
+	menu.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	menu.pressed.connect(_return_to_main_menu)
+	box.add_child(menu)
+	# the rosette pops in next to the panel (drawn at 2x)
+	var rosette := TextureRect.new()
+	rosette.texture = ROSETTE
+	rosette.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	rosette.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	rosette.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	rosette.custom_minimum_size = ROSETTE.get_size() * 2
+	rosette.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	row.add_child(rosette)
+	rosette.pivot_offset = rosette.custom_minimum_size / 2
+	rosette.scale = Vector2.ZERO
+	var pop := create_tween()
+	pop.tween_interval(0.3)
+	pop.tween_property(rosette, "scale", Vector2.ONE, 0.45).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+
+
+func _return_to_main_menu() -> void:
+	sfx_player.stop()
+	GameState.reset()
+	go_to_main_menu.call()
 
 
 # ---------------------------------------------------------------- sounds

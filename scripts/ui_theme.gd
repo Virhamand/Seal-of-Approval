@@ -10,6 +10,7 @@ var surface := Color("#B4E1EB")      # buttons, empty part of progress bars
 var accent := Color("#95BDD7")       # button hover
 var border := Color("#78A4CB")       # outlines, pressed buttons, progress fill
 var text := Color("#2B3A55")         # all text (dark so it reads on the light palette)
+var highlight := Color("#DE5F85")    # pink for words that should pop ("Seal of Approval")
 
 ## Pixel font for every text. m5x7 is drawn for multiples of 16, so keep sizes at 16/32/48.
 var font_path := "res://assets/fonts/m5x7.ttf"
