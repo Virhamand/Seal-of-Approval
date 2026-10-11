@@ -5,6 +5,9 @@ extends CharacterBody2D
 @export var can_move := true
 ## Movement animations use "swim_" in the sea mini-game, "galumph_" on land.
 @export var swim_mode := false
+## When false, the seal stops picking idle/move animations by itself so a
+## cutscene can play "fall"/"die" without being overwritten.
+@export var auto_animate := true
 @onready var sprite: AnimatedSprite2D = $AnimatedSprite2D
 var facing := "down"
 
@@ -21,6 +24,8 @@ func _physics_process(delta: float) -> void:
 	velocity = dir * speed
 	move_and_slide()
 	
+	if not auto_animate:
+		return
 	if dir != Vector2.ZERO:
 		if abs(dir.x) > abs(dir.y):
 			facing = "right" if dir.x > 0 else "left"

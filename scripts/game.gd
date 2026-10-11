@@ -13,14 +13,23 @@ var popup: Node = null
 var _popup_layer: CanvasLayer
 var _label: Label
 var _buttons: HBoxContainer
+var _rating_panel: Control
+var _rating_bar: ProgressBar
+var _rating_value: Label
+var _end_layer: CanvasLayer
 
 
 func _ready() -> void:
 	_popup_layer = CanvasLayer.new()
 	_popup_layer.layer = 5
 	add_child(_popup_layer)
+	_build_rating_bar()
 	_build_debug_ui()
 	GameState.state_changed.connect(_on_state_changed)
+	GameState.result_ready.connect(func(): _update_recipe_popup(); _refresh_debug_ui())
+	GameState.rating_changed.connect(func(_v): _update_rating_bar())
+	GameState.ending_reached.connect(_show_end_screen)
+	GameState.restarted.connect(_on_restarted)
 	_show_state(GameState.state)
 
 
@@ -52,7 +61,128 @@ func _show_state(s: GameState.State) -> void:
 	if level.has_method("enter_state"):
 		level.enter_state(s)
 	_update_recipe_popup()
+	_update_rating_bar()
 	_refresh_debug_ui()
+
+
+func _on_restarted() -> void:
+	if _end_layer:
+		_end_layer.queue_free()
+		_end_layer = null
+	# force a fresh level even if the scene path is the same
+	if level:
+		level_root.remove_child(level)
+		level.queue_free()
+		level = null
+	level_path = ""
+
+
+# ---------------------------------------------------------------- rating bar
+## Top-right "Rating 35/100" bar. Hidden during the seal mini-game.
+func _build_rating_bar() -> void:
+	var layer := CanvasLayer.new()
+	layer.layer = 8
+	add_child(layer)
+	var corner := MarginContainer.new()
+	corner.theme = UiTheme.theme
+	corner.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
+	corner.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+	corner.offset_top = 6
+	corner.offset_right = -6
+	layer.add_child(corner)
+	_rating_panel = corner
+	var panel := PanelContainer.new()
+	corner.add_child(panel)
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 6)
+	panel.add_child(row)
+	var star := TextureRect.new()
+	star.texture = _star_texture()
+	star.stretch_mode = TextureRect.STRETCH_KEEP_CENTERED
+	star.custom_minimum_size = Vector2(11, 11)
+	row.add_child(star)
+	var title := Label.new()
+	title.text = "Rating"
+	row.add_child(title)
+	_rating_bar = ProgressBar.new()
+	_rating_bar.max_value = GameState.RATING_MAX
+	_rating_bar.show_percentage = false
+	_rating_bar.custom_minimum_size = Vector2(90, 10)
+	_rating_bar.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	row.add_child(_rating_bar)
+	_rating_value = Label.new()
+	_rating_value.custom_minimum_size.x = 48
+	row.add_child(_rating_value)
+
+
+func _update_rating_bar() -> void:
+	_rating_bar.value = GameState.rating
+	_rating_value.text = "%d/%d" % [GameState.rating, GameState.RATING_MAX]
+	_rating_panel.visible = GameState.state != GameState.State.SEAL_MINI_GAME
+
+
+## A small pixel star in the theme's border colour.
+func _star_texture() -> Texture2D:
+	var rows := [
+		".....#.....",
+		".....#.....",
+		"....###....",
+		"###########",
+		".#########.",
+		"..#######..",
+		"..#######..",
+		".####.####.",
+		".###...###.",
+		"##.......##",
+	]
+	var img := Image.create(11, 10, false, Image.FORMAT_RGBA8)
+	for y in rows.size():
+		for x in rows[y].length():
+			if rows[y][x] == "#":
+				img.set_pixel(x, y, UiTheme.border)
+	return ImageTexture.create_from_image(img)
+
+
+# ---------------------------------------------------------------- the end
+func _show_end_screen() -> void:
+	if _end_layer:
+		return
+	_end_layer = CanvasLayer.new()
+	_end_layer.layer = 20
+	add_child(_end_layer)
+	var dim := ColorRect.new()
+	dim.color = Color(UiTheme.text, 0.45)
+	dim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_end_layer.add_child(dim)
+	var center := CenterContainer.new()
+	center.theme = UiTheme.theme
+	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_end_layer.add_child(center)
+	var panel := PanelContainer.new()
+	panel.custom_minimum_size = Vector2(280, 0)
+	center.add_child(panel)
+	var box := VBoxContainer.new()
+	box.alignment = BoxContainer.ALIGNMENT_CENTER
+	box.add_theme_constant_override("separation", 8)
+	panel.add_child(box)
+	var title := Label.new()
+	title.text = "The End"
+	title.add_theme_font_size_override("font_size", 24)
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	box.add_child(title)
+	var days := Label.new()
+	days.text = "You reached %d rating in %d day%s." % [GameState.RATING_MAX, GameState.day, "" if GameState.day == 1 else "s"]
+	days.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	box.add_child(days)
+	var recipes := Label.new()
+	recipes.text = "Recipes on the menu: %d" % GameState.unlocked_recipes.size()
+	recipes.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	box.add_child(recipes)
+	var again := Button.new()
+	again.text = "Play again"
+	again.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	again.pressed.connect(GameState.restart)
+	box.add_child(again)
 
 
 # ---------------------------------------------------------------- recipe pop-up
@@ -89,6 +219,12 @@ func _build_debug_ui() -> void:
 	box.add_child(_label)
 	_buttons = HBoxContainer.new()
 	box.add_child(_buttons)
+	var fill := Button.new()
+	fill.text = "Fill rating"
+	fill.add_theme_font_size_override("font_size", 10)
+	fill.focus_mode = Control.FOCUS_NONE
+	fill.pressed.connect(func(): GameState.set_rating(GameState.RATING_MAX))
+	box.add_child(fill)
 
 
 func _refresh_debug_ui() -> void:

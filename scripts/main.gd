@@ -1,64 +1,297 @@
 extends Node2D
 ## The beach.
-##   Walking_on_Beach: only the chef, who can walk around.
-##   Talking_to_Seal: the seal appears next to the chef and both are frozen.
+##   Walking_on_Beach: the chef walks around. The seal lives on the bottom shore.
+##   Talking_to_Seal: chef and seal are frozen, facing each other.
+##
+## Story beats handled here:
+##   Day 1: the camera pans to the fainted seal; "[F] Feed" makes it get up and
+##          unlocks the first recipe.
+##   Days 2+: "[F] Play" starts the mini-game.
+##   Rating full: the camera pans to the waiting seal; "[F] Talk" -> congratulations
+##          -> The End.
+## Interact with the F key ("interact" action) or by clicking the seal.
 
 const CHEF := preload("res://sprites/chef.tscn")
 const SEAL := preload("res://sprites/seal.tscn")
 
 @export var chef_start := Vector2(560, 300)
-@export var seal_offset := Vector2(56, 0)   # where the seal appears relative to the chef
+## Where the seal waits. Leave at (0, 0) to place it automatically on the bottom shore.
+@export var seal_spot := Vector2.ZERO
+## How close the chef must be to interact with the seal.
+@export var interact_distance := 72.0
+## Camera pan timings (seconds).
+@export var pan_time := 1.4
+@export var pan_hold := 1.8
 
-## Remembered across visits so the chef is where you left him after the mini-game.
-static var _last_chef_position := Vector2.INF
+const FEED_TEXT := "[F] Feed malnourished seal Fries and Water"
+const PLAY_TEXT := "[F] Play"
+const TALK_TEXT := "[F] Talk"
+const CONGRATS := [
+	"You did it! 100 rating!",
+	"The whole shore is talking about your cooking.",
+	"Thanks for the fries and water on that first day. Best meal of my life.",
+]
 
 var chef: CharacterBody2D
-var seal: CharacterBody2D = null
+var seal: CharacterBody2D
 var camera := Camera2D.new()
+
+var _cutscene := false
+var _prompt: PanelContainer
+var _prompt_label: Label
+var _dialogue_layer: CanvasLayer
+var _dialogue_label: Label
+var _dialogue_lines: Array = []
+var _dialogue_index := -1
 
 
 func _ready() -> void:
 	chef = CHEF.instantiate()
-	chef.position = chef_start if _last_chef_position == Vector2.INF else _last_chef_position
+	var remembered := GameState.beach_chef_position
+	chef.position = chef_start if remembered == Vector2.INF else remembered
 	add_child(chef)
-	tree_exiting.connect(func(): _last_chef_position = chef.position)
+	tree_exiting.connect(func(): GameState.beach_chef_position = chef.position)
+
+	seal = SEAL.instantiate()
+	seal.can_move = false
+	seal.position = seal_spot if seal_spot != Vector2.ZERO else _auto_seal_spot()
+	add_child(seal)
+	if GameState.seal_fed:
+		seal.face("down")
+	else:
+		_play_fainted()
+
+	_build_prompt()
 	_setup_camera()
 
 
 func enter_state(s: GameState.State) -> void:
 	match s:
 		GameState.State.WALKING_ON_BEACH:
-			_remove_seal()
+			_end_dialogue()
 			chef.can_move = true
 			chef.face("down")   # player in control: start facing down
+			if GameState.seal_fed:
+				seal.face("down")
+			if GameState.previous_state == GameState.State.RUNNING_RESTAURANT and _story_needs_seal():
+				_pan_to_seal()
 		GameState.State.TALKING_TO_SEAL:
 			chef.can_move = false
-			_spawn_seal()
-			# face each other
+			_prompt.hide()
 			chef.face(dir_name(seal.position - chef.position))
-			seal.face(dir_name(chef.position - seal.position))
+			if not GameState.seal_fed:
+				_feed_seal()
+			else:
+				seal.face(dir_name(chef.position - seal.position))
+				if GameState.result_pending:
+					pass   # the recipe pop-up is shown by the game
+				elif GameState.is_rating_full():
+					_start_dialogue(CONGRATS)
+				else:
+					# "[F] Play": a short beat, then the mini-game
+					get_tree().create_timer(0.6).timeout.connect(_start_mini_game)
 
 
-func _spawn_seal() -> void:
-	if seal:
+## True when the seal is the reason to come to the beach right now.
+func _story_needs_seal() -> bool:
+	return (not GameState.seal_fed) or (GameState.is_rating_full() and not GameState.ending)
+
+
+# ---------------------------------------------------------------- interaction
+func _process(_delta: float) -> void:
+	if not _cutscene:
+		camera.position = chef.position
+	_update_prompt()
+
+
+func _update_prompt() -> void:
+	var show := GameState.state == GameState.State.WALKING_ON_BEACH and not _cutscene \
+			and chef.position.distance_to(seal.position) <= interact_distance
+	if show:
+		_prompt_label.text = _prompt_text()
+		_prompt.reset_size()
+		_prompt.position = seal.position + Vector2(-_prompt.size.x / 2, -44 - _prompt.size.y)
+	_prompt.visible = show
+
+
+func _prompt_text() -> String:
+	if not GameState.seal_fed:
+		return FEED_TEXT
+	if GameState.is_rating_full():
+		return TALK_TEXT
+	return PLAY_TEXT
+
+
+func _unhandled_input(event: InputEvent) -> void:
+	if _dialogue_index >= 0:
+		var key: bool = event is InputEventKey and event.pressed and not event.echo
+		var click: bool = event is InputEventMouseButton and event.pressed
+		if key or click:
+			get_viewport().set_input_as_handled()
+			_next_dialogue_line()
 		return
-	seal = SEAL.instantiate()
-	seal.can_move = false
-	seal.position = chef.position + seal_offset
-	add_child(seal)
+	if not _prompt.visible:
+		return
+	var clicked_seal: bool = event is InputEventMouseButton and event.pressed \
+			and event.button_index == MOUSE_BUTTON_LEFT \
+			and _seal_rect().has_point((make_input_local(event) as InputEventMouseButton).position)
+	if event.is_action_pressed("interact") or clicked_seal:
+		get_viewport().set_input_as_handled()
+		GameState.go(GameState.State.TALKING_TO_SEAL)
 
 
-## "down"/"left"/"right"/"up" for the main direction of vector `v`.
-static func dir_name(v: Vector2) -> String:
-	if absf(v.x) > absf(v.y):
-		return "right" if v.x > 0 else "left"
-	return "down" if v.y > 0 else "up"
+func _seal_rect() -> Rect2:
+	var size := Vector2(16, 16) * seal.scale
+	return Rect2(seal.position - size / 2, size)
 
 
-func _remove_seal() -> void:
-	if seal:
-		seal.queue_free()
-		seal = null
+func _start_mini_game() -> void:
+	if GameState.state == GameState.State.TALKING_TO_SEAL and GameState.can_go(GameState.State.SEAL_MINI_GAME):
+		GameState.go(GameState.State.SEAL_MINI_GAME)
+
+
+# ---------------------------------------------------------------- day-1 seal
+func _play_fainted() -> void:
+	seal.auto_animate = false
+	seal.sprite.play("fall")
+	if not seal.sprite.animation_finished.is_connected(_on_fall_finished):
+		seal.sprite.animation_finished.connect(_on_fall_finished)
+
+
+func _on_fall_finished() -> void:
+	if not GameState.seal_fed and seal.sprite.animation == "fall":
+		seal.sprite.play("die")   # loops
+
+
+## Fries and water: the eyes open (fall frame 2), it gets up (fall backwards),
+## then idles. Unlocks the first recipe.
+func _feed_seal() -> void:
+	seal.auto_animate = false
+	var spr: AnimatedSprite2D = seal.sprite
+	spr.play("fall")
+	spr.pause()
+	spr.frame = 2   # the frame where its eyes aren't crossed out
+	await get_tree().create_timer(1.0).timeout
+	if not is_inside_tree():
+		return
+	spr.play_backwards("fall")
+	spr.frame = 2
+	await spr.animation_finished
+	if not is_inside_tree():
+		return
+	seal.auto_animate = true
+	seal.face(dir_name(chef.position - seal.position))
+	GameState.feed_seal()
+
+
+# ---------------------------------------------------------------- camera pan
+func _pan_to_seal() -> void:
+	_cutscene = true
+	chef.can_move = false
+	var target := _clamped(seal.position)
+	var back := _clamped(chef.position)
+	camera.position = back
+	var t := create_tween()
+	t.tween_property(camera, "position", target, pan_time).set_trans(Tween.TRANS_SINE)
+	t.tween_interval(pan_hold)
+	t.tween_property(camera, "position", back, pan_time).set_trans(Tween.TRANS_SINE)
+	t.tween_callback(func():
+		_cutscene = false
+		if GameState.state == GameState.State.WALKING_ON_BEACH:
+			chef.can_move = true)
+
+
+## Camera position after limits, so tweens don't "stick" at the map edge.
+func _clamped(p: Vector2) -> Vector2:
+	var half := get_viewport_rect().size / 2
+	return Vector2(
+		clampf(p.x, camera.limit_left + half.x, camera.limit_right - half.x),
+		clampf(p.y, camera.limit_top + half.y, camera.limit_bottom - half.y))
+
+
+# ---------------------------------------------------------------- dialogue
+func _start_dialogue(lines: Array) -> void:
+	_dialogue_lines = lines
+	_dialogue_index = -1
+	if _dialogue_layer == null:
+		_dialogue_layer = CanvasLayer.new()
+		_dialogue_layer.layer = 6
+		add_child(_dialogue_layer)
+		var holder := MarginContainer.new()
+		holder.theme = UiTheme.theme
+		holder.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE)
+		holder.grow_vertical = Control.GROW_DIRECTION_BEGIN
+		for side in ["left", "right", "bottom"]:
+			holder.add_theme_constant_override("margin_" + side, 16)
+		_dialogue_layer.add_child(holder)
+		var panel := PanelContainer.new()
+		holder.add_child(panel)
+		var box := VBoxContainer.new()
+		panel.add_child(box)
+		var who := Label.new()
+		who.text = "Seal"
+		who.add_theme_font_size_override("font_size", 10)
+		box.add_child(who)
+		_dialogue_label = Label.new()
+		_dialogue_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		_dialogue_label.custom_minimum_size = Vector2(0, 36)
+		box.add_child(_dialogue_label)
+		var hint := Label.new()
+		hint.text = "Click or press any key"
+		hint.add_theme_font_size_override("font_size", 9)
+		hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+		box.add_child(hint)
+	_dialogue_layer.show()
+	_next_dialogue_line()
+
+
+func _next_dialogue_line() -> void:
+	_dialogue_index += 1
+	if _dialogue_index >= _dialogue_lines.size():
+		_end_dialogue()
+		GameState.reach_ending()
+		return
+	_dialogue_label.text = _dialogue_lines[_dialogue_index]
+
+
+func _end_dialogue() -> void:
+	_dialogue_index = -1
+	if _dialogue_layer:
+		_dialogue_layer.hide()
+
+
+# ---------------------------------------------------------------- setup
+func _build_prompt() -> void:
+	_prompt = PanelContainer.new()
+	_prompt.theme = UiTheme.theme
+	_prompt.z_index = 10
+	_prompt.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_prompt_label = Label.new()
+	_prompt_label.add_theme_font_size_override("font_size", 10)
+	_prompt.add_child(_prompt_label)
+	add_child(_prompt)
+	_prompt.hide()
+
+
+## Middle of the lowest row of sand on the Ground layer, one tile up from the water.
+func _auto_seal_spot() -> Vector2:
+	var ground: TileMapLayer = $Ground
+	var lowest := -1000000
+	var xs: Array[int] = []
+	for c in ground.get_used_cells():
+		var td := ground.get_cell_tile_data(c)
+		if td == null or td.terrain_set != 0 or td.terrain != 0:
+			continue
+		if c.y > lowest:
+			lowest = c.y
+			xs = [c.x]
+		elif c.y == lowest:
+			xs.append(c.x)
+	if xs.is_empty():
+		return chef_start + Vector2(0, 120)
+	xs.sort()
+	var cell := Vector2i(xs[xs.size() / 2], lowest - 1)
+	return ground.to_global(ground.map_to_local(cell))
 
 
 func _setup_camera() -> void:
@@ -74,5 +307,8 @@ func _setup_camera() -> void:
 	camera.make_current()
 
 
-func _process(_delta: float) -> void:
-	camera.position = chef.position
+## "down"/"left"/"right"/"up" for the main direction of vector `v`.
+static func dir_name(v: Vector2) -> String:
+	if absf(v.x) > absf(v.y):
+		return "right" if v.x > 0 else "left"
+	return "down" if v.y > 0 else "up"

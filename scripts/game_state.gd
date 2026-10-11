@@ -9,6 +9,10 @@ extends Node
 ## the result waiting on a pop-up. While a result is waiting, the only way out
 ## of Talking_to_Seal is the next day (Running_restaurant).
 ## Illegal transitions are refused and logged.
+##
+## Story: on day 1 the seal is found fainted on the shore and must be fed
+## (Talking_to_Seal -> feed_seal()), which unlocks the first recipe without a
+## mini-game. Once the rating bar is full, talking to the seal ends the game.
 
 enum State {
 	RUNNING_RESTAURANT,
@@ -39,6 +43,13 @@ const RECIPE_ORDER := ["Fish Sandwich", "Berry Drink", "Fish Soup", "Hot Cocoa",
 signal state_changed(from: State, to: State)
 signal day_started(day: int)
 signal recipe_unlocked(recipe: String)
+## A result (recipe pop-up) became ready without a state change, e.g. after feeding.
+signal result_ready
+signal rating_changed(value: int)
+signal ending_reached
+signal restarted
+
+const RATING_MAX := 100
 
 var state: State = State.RUNNING_RESTAURANT
 var day := 1
@@ -53,10 +64,23 @@ var last_recipe := ""
 # win so the temporary debug button still works as a "skip".
 var _next_result_won := true
 
+## Restaurant rating, 0..RATING_MAX. The restaurant adds to it with add_rating().
+var rating := 0
+## Day-1 story beat: has the fainted seal been fed yet?
+var seal_fed := false
+## The congratulation talk has happened and the end screen is showing.
+var ending := false
+## The state we came from on the last transition.
+var previous_state: State = State.RUNNING_RESTAURANT
+## Where the chef stood on the beach last time (kept across visits).
+var beach_chef_position := Vector2.INF
+
 
 func allowed_next() -> Array:
 	if state == State.TALKING_TO_SEAL and result_pending:
 		return [State.RUNNING_RESTAURANT]
+	if state == State.TALKING_TO_SEAL and not seal_fed:
+		return [State.WALKING_ON_BEACH]   # no mini-game until the seal has been fed
 	return TRANSITIONS[state]
 
 
@@ -70,6 +94,7 @@ func go(to: State) -> bool:
 		push_warning("GameState: illegal transition %s -> %s" % [state_name(state), state_name(to)])
 		return false
 	var from := state
+	previous_state = from
 	state = to
 	if from == State.SEAL_MINI_GAME and to == State.TALKING_TO_SEAL:
 		_finish_mini_game(_next_result_won)
@@ -102,6 +127,45 @@ func _finish_mini_game(won: bool) -> void:
 		recipe_unlocked.emit(last_recipe)
 
 
+# ---------------------------------------------------------------- rating
+func add_rating(amount: int) -> void:
+	set_rating(rating + amount)
+
+
+func set_rating(value: int) -> void:
+	rating = clampi(value, 0, RATING_MAX)
+	rating_changed.emit(rating)
+
+
+func is_rating_full() -> bool:
+	return rating >= RATING_MAX
+
+
+# ---------------------------------------------------------------- story
+## Day 1: the player fed the fainted seal. Unlocks the first recipe and shows
+## the recipe pop-up (the next day starts when it is dismissed).
+func feed_seal() -> void:
+	if seal_fed:
+		return
+	seal_fed = true
+	_finish_mini_game(true)
+	result_ready.emit()
+
+
+## The seal has congratulated the player: show the end screen.
+func reach_ending() -> void:
+	ending = true
+	ending_reached.emit()
+
+
+## Start a brand new game from day 1.
+func restart() -> void:
+	var from := state
+	reset()
+	restarted.emit()
+	state_changed.emit(from, state)
+
+
 func reset() -> void:
 	state = State.RUNNING_RESTAURANT
 	day = 1
@@ -110,6 +174,12 @@ func reset() -> void:
 	last_won = false
 	last_recipe = ""
 	_next_result_won = true
+	rating = 0
+	seal_fed = false
+	ending = false
+	previous_state = State.RUNNING_RESTAURANT
+	beach_chef_position = Vector2.INF
+	rating_changed.emit(rating)
 
 
 func state_name(s: State) -> String:

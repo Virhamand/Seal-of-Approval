@@ -43,6 +43,7 @@ func _ready() -> void:
 
 func run() -> void:
 	print("== transition table matches the diagram")
+	GameState.seal_fed = true   # this test covers the loop after the day-1 story
 	for pending in [false, true]:
 		for from in S.values():
 			for to in S.values():
@@ -56,6 +57,7 @@ func run() -> void:
 					expect = edge in EXPECTED_EDGES
 				check(GameState.can_go(to) == expect, "%s%s %s" % ["(recipe waiting) " if pending else "", "allowed" if expect else "blocked", edge])
 	GameState.reset()
+	GameState.seal_fed = true
 
 	game = load("res://scenes/game.tscn").instantiate()
 	add_child(game)
@@ -97,7 +99,7 @@ func run() -> void:
 	var start_ms := Time.get_ticks_msec()
 	while t < 3.0:
 		# sample every drawn frame: that's what the player actually sees
-		await RenderingServer.frame_pre_draw
+		await get_tree().process_frame
 		t = (Time.get_ticks_msec() - start_ms) / 1000.0
 		if t > 1.5 and Input.is_action_pressed("right"):
 			Input.action_release("right")
