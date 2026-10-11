@@ -1,6 +1,6 @@
 [gd_scene format=3 uid="uid://wm82gd01mf0g"]
 
-[ext_resource type="Texture2D" uid="uid://b04e7lfv2j8q8" path="res://sprites/harbour_seal.png" id="1_mowh3"]
+[ext_resource type="Texture2D" uid="uid://b04e7lfv2j8q8" path="res://sprites/sprite_sheets/harbour_seal.png" id="1_mowh3"]
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_hhpmd"]
 atlas = ExtResource("1_mowh3")
@@ -633,4 +633,4 @@ Rest are kept at 5 FPS."
 texture_filter = 1
 sprite_frames = SubResource("SpriteFrames_q1jeg")
 animation = &"backward_idle"
-frame_progress = 0.19438256
+frame_progress = 0.93905854

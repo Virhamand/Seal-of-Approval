@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://b04e7lfv2j8q8"
-path="res://.godot/imported/harbour_seal.png-4b841bca53f820ce83f8bfd8893a930a.ctex"
+uid="uid://doofhri60obl7"
+path="res://.godot/imported/customer_base.png-9143cbc46e171e302a93655636d6b094.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://sprites/harbour_seal.png"
-dest_files=["res://.godot/imported/harbour_seal.png-4b841bca53f820ce83f8bfd8893a930a.ctex"]
+source_file="res://sprites/sprite_sheets/customer_base.png"
+dest_files=["res://.godot/imported/customer_base.png-9143cbc46e171e302a93655636d6b094.ctex"]
 
 [params]
 
