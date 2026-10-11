@@ -7,11 +7,27 @@ offset_left = 87.0
 offset_top = 64.0
 offset_right = 554.0
 offset_bottom = 291.0
+color = Color(1, 1, 1, 0.28235295)
 
 [node name="Label" type="Label" parent="." unique_id=1363087840]
-offset_left = 232.0
-offset_top = 163.0
-offset_right = 428.0
-offset_bottom = 208.0
+offset_left = 224.0
+offset_top = 98.0
+offset_right = 420.0
+offset_bottom = 143.0
 theme_override_colors/font_color = Color(0, 0, 0, 1)
-text = "New Recipe yippee"
+text = "New Recipe Unlocked!"
+
+[node name="RecipeName" type="Label" parent="." unique_id=293077752]
+offset_left = 292.0
+offset_top = 126.0
+offset_right = 336.0
+offset_bottom = 149.0
+theme_override_colors/font_color = Color(0, 0, 0, 1)
+text = "blank"
+
+[node name="ColorRect2" type="ColorRect" parent="." unique_id=614902585]
+offset_left = 283.0
+offset_top = 161.0
+offset_right = 355.0
+offset_bottom = 229.0
+color = Color(0.47983426, 0.47983432, 0.47983426, 1)
