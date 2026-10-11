@@ -1,8 +1,10 @@
 [gd_scene format=4 uid="uid://c6tdcnd0cnl8w"]
 
 [ext_resource type="TileSet" uid="uid://b14okbdiabrf4" path="res://tiles/outdoor_tileset.tres" id="1_leb0p"]
+[ext_resource type="Script" path="res://scripts/sea_repeat.gd" id="2_sea"]
 
 [node name="Node2D" type="Node2D" unique_id=362166746]
+script = ExtResource("2_sea")
 
 [node name="Ground" type="TileMapLayer" parent="." unique_id=2146313547]
 z_index = -1

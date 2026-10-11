@@ -11,9 +11,13 @@ config_version=5
 [application]
 
 config/name="Seal & Serve"
-run/main_scene="res://scenes/legacy.tscn"
+run/main_scene="res://scenes/game.tscn"
 config/features=PackedStringArray("4.7", "Forward Plus")
 config/icon="res://icon.svg"
+
+[autoload]
+
+GameState="*res://scripts/game_state.gd"
 
 [display]
 

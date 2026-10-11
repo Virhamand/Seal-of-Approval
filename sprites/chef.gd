@@ -1,11 +1,13 @@
 extends CharacterBody2D
 
 @export var speed := 60.0
+## When false the chef ignores input and stands still. Set by the current game state.
+@export var can_move := true
 @onready var sprite: AnimatedSprite2D = $AnimatedSprite2D
 var facing := "down"
 
 func _physics_process(delta: float) -> void:
-	var dir := Input.get_vector("left", "right", "up", "down")
+	var dir := Input.get_vector("left", "right", "up", "down") if can_move else Vector2.ZERO
 	velocity = dir * speed
 	move_and_slide()
 	

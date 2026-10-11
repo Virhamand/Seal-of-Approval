@@ -1,0 +1,14 @@
+[gd_scene format=3 uid="uid://hf5s8k4l86so"]
+
+[ext_resource type="Script" uid="uid://btta3jrqfq5vw" path="res://scripts/temp_restaurant_scene.gd" id="1_ndydg"]
+[ext_resource type="PackedScene" uid="uid://ds7lwk5anjkp0" path="res://sprites/chef.tscn" id="2_r0afo"]
+[ext_resource type="PackedScene" uid="uid://wm82gd01mf0g" path="res://sprites/seal.tscn" id="3_44r1u"]
+
+[node name="TempRestaurantScene" type="Node2D" unique_id=701587275]
+script = ExtResource("1_ndydg")
+
+[node name="chef" parent="." unique_id=1481587763 instance=ExtResource("2_r0afo")]
+position = Vector2(234, 172)
+
+[node name="seal" parent="." unique_id=2826275 instance=ExtResource("3_44r1u")]
+position = Vector2(363, 182)

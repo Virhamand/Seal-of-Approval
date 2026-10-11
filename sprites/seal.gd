@@ -1,11 +1,15 @@
 extends CharacterBody2D
 
 @export var speed := 60.0
+## When false the seal ignores input and stands still. Set by the current game state.
+@export var can_move := true
+## Movement animations use "swim_" in the sea mini-game, "galumph_" on land.
+@export var swim_mode := false
 @onready var sprite: AnimatedSprite2D = $AnimatedSprite2D
 var facing := "down"
 
 func _physics_process(delta: float) -> void:
-	var dir := Input.get_vector("left", "right", "up", "down")
+	var dir := Input.get_vector("left", "right", "up", "down") if can_move else Vector2.ZERO
 	velocity = dir * speed
 	move_and_slide()
 	
@@ -14,6 +18,6 @@ func _physics_process(delta: float) -> void:
 			facing = "right" if dir.x > 0 else "left"
 		else:
 			facing = "down" if dir.y > 0 else "up"
-		sprite.play("galumph_" + facing)
+		sprite.play(("swim_" if swim_mode else "galumph_") + facing)
 	else:
 		sprite.play("idle_" + facing)
