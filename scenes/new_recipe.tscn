@@ -1,0 +1,17 @@
+[gd_scene format=3 uid="uid://csdm1u0681tpo"]
+
+[node name="NewRecipe" type="Node2D" unique_id=581086635]
+
+[node name="ColorRect" type="ColorRect" parent="." unique_id=847689194]
+offset_left = 87.0
+offset_top = 64.0
+offset_right = 554.0
+offset_bottom = 291.0
+
+[node name="Label" type="Label" parent="." unique_id=1363087840]
+offset_left = 232.0
+offset_top = 163.0
+offset_right = 428.0
+offset_bottom = 208.0
+theme_override_colors/font_color = Color(0, 0, 0, 1)
+text = "New Recipe yippee"
