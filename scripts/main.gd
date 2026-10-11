@@ -9,6 +9,9 @@ const SEAL := preload("res://sprites/seal.tscn")
 @export var chef_start := Vector2(560, 300)
 @export var seal_offset := Vector2(56, 0)   # where the seal appears relative to the chef
 
+## Remembered across visits so the chef is where you left him after the mini-game.
+static var _last_chef_position := Vector2.INF
+
 var chef: CharacterBody2D
 var seal: CharacterBody2D = null
 var camera := Camera2D.new()
@@ -16,8 +19,9 @@ var camera := Camera2D.new()
 
 func _ready() -> void:
 	chef = CHEF.instantiate()
-	chef.position = chef_start
+	chef.position = chef_start if _last_chef_position == Vector2.INF else _last_chef_position
 	add_child(chef)
+	tree_exiting.connect(func(): _last_chef_position = chef.position)
 	_setup_camera()
 
 
@@ -26,10 +30,13 @@ func enter_state(s: GameState.State) -> void:
 		GameState.State.WALKING_ON_BEACH:
 			_remove_seal()
 			chef.can_move = true
+			chef.face("down")   # player in control: start facing down
 		GameState.State.TALKING_TO_SEAL:
 			chef.can_move = false
-			chef.facing = "right"
 			_spawn_seal()
+			# face each other
+			chef.face(dir_name(seal.position - chef.position))
+			seal.face(dir_name(chef.position - seal.position))
 
 
 func _spawn_seal() -> void:
@@ -37,9 +44,15 @@ func _spawn_seal() -> void:
 		return
 	seal = SEAL.instantiate()
 	seal.can_move = false
-	seal.facing = "left"
 	seal.position = chef.position + seal_offset
 	add_child(seal)
+
+
+## "down"/"left"/"right"/"up" for the main direction of vector `v`.
+static func dir_name(v: Vector2) -> String:
+	if absf(v.x) > absf(v.y):
+		return "right" if v.x > 0 else "left"
+	return "down" if v.y > 0 else "up"
 
 
 func _remove_seal() -> void:
@@ -56,6 +69,7 @@ func _setup_camera() -> void:
 	camera.limit_top = int(r.position.y * cell.y)
 	camera.limit_right = int(r.end.x * cell.x)
 	camera.limit_bottom = int(r.end.y * cell.y)
+	camera.position = chef.position
 	add_child(camera)
 	camera.make_current()
 

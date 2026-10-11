@@ -6,6 +6,14 @@ extends CharacterBody2D
 @onready var sprite: AnimatedSprite2D = $AnimatedSprite2D
 var facing := "down"
 
+
+## Turn to `dir` ("down", "left", "right", "up") and show the standing pose.
+## Called by the level whenever the game state changes.
+func face(dir: String) -> void:
+	facing = dir
+	velocity = Vector2.ZERO
+	sprite.play("idle_" + facing)
+
 func _physics_process(delta: float) -> void:
 	var dir := Input.get_vector("left", "right", "up", "down") if can_move else Vector2.ZERO
 	velocity = dir * speed

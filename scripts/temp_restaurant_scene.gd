@@ -17,6 +17,8 @@ var _spawning := false
 func enter_state(_s: GameState.State) -> void:
 	chef.can_move = true
 	seal.can_move = false
+	chef.face("down")   # player in control: start facing down
+	seal.face("down")
 	if not _spawning:
 		_spawning = true
 		_spawn_customer()
