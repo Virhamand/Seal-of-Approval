@@ -15,7 +15,8 @@ const CHEF := preload("res://sprites/chef.tscn")
 const SEAL := preload("res://sprites/seal.tscn")
 
 @export var chef_start := Vector2(560, 300)
-## The restaurant door's Area2D. Coming out of the restaurant puts the chef just below it.
+## The restaurant door's Area2D. Walking into it enters the restaurant; coming out
+## of the restaurant puts the chef just below it.
 @export var door_area_path: NodePath = ^"Sprite2D/Area2D"
 ## Extra gap between the bottom of the door area and the chef.
 @export var door_exit_gap := 10.0
@@ -81,6 +82,9 @@ func _ready() -> void:
 
 	_build_prompt()
 	_setup_camera()
+	var door_area := get_node_or_null(door_area_path) as Area2D
+	if door_area:
+		door_area.body_entered.connect(_on_door_entered)
 
 
 func enter_state(s: GameState.State) -> void:
@@ -165,6 +169,12 @@ func _unhandled_input(event: InputEvent) -> void:
 func _seal_rect() -> Rect2:
 	var size := Vector2(16, 16) * seal.scale
 	return Rect2(seal.position - size / 2, size)
+
+
+## Walking into the restaurant door goes back to Running_restaurant (same day).
+func _on_door_entered(body: Node2D) -> void:
+	if body == chef and not _cutscene and GameState.state == GameState.State.WALKING_ON_BEACH:
+		GameState.go.call_deferred(GameState.State.RUNNING_RESTAURANT)
 
 
 func _start_mini_game() -> void:
