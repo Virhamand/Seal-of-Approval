@@ -1,5 +1,6 @@
 [gd_scene format=3 uid="uid://be2wrnviurft5"]
 
+[ext_resource type="Script" path="res://sprites/fish.gd" id="0_fishgd"]
 [ext_resource type="Texture2D" uid="uid://drfdeud5pxeev" path="res://sprites/sprite_sheets/fish_B_snapper.png" id="1_qoreu"]
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_pr7wj"]
@@ -76,6 +77,7 @@ radius = 2.0541964
 height = 22.938515
 
 [node name="Fish" type="Area2D" unique_id=323447363]
+script = ExtResource("0_fishgd")
 
 [node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="." unique_id=564989358]
 texture_filter = 1

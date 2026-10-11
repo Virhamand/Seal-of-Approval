@@ -1,13 +1,17 @@
 [gd_scene format=3 uid="uid://csdm1u0681tpo"]
 
+[ext_resource type="Script" uid="uid://bt6c63758qp5c" path="res://scripts/new_recipe.gd" id="1_recipe"]
+
 [node name="NewRecipe" type="Node2D" unique_id=581086635]
+script = ExtResource("1_recipe")
 
 [node name="ColorRect" type="ColorRect" parent="." unique_id=847689194]
 offset_left = 87.0
 offset_top = 64.0
 offset_right = 554.0
 offset_bottom = 291.0
-color = Color(1, 1, 1, 0.28235295)
+scale = Vector2(0.9989717, 1)
+color = Color(1, 1, 1, 0.654902)
 
 [node name="Label" type="Label" parent="." unique_id=1363087840]
 offset_left = 224.0
