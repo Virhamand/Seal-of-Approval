@@ -17,3 +17,6 @@ mono_crash.*.json
 
 # macOS artifacts
 .DS_Store
+
+# Claude artifacts
+Claude\ outputs/
