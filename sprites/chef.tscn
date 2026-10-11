@@ -1,5 +1,6 @@
 [gd_scene format=3 uid="uid://ds7lwk5anjkp0"]
 
+[ext_resource type="Script" uid="uid://djq5a2f52htty" path="res://sprites/chef.gd" id="1_1uxjn"]
 [ext_resource type="Texture2D" uid="uid://k8yh0mlgefe7" path="res://sprites/sprite_sheets/character_C_seaside_cook.png" id="1_34g6b"]
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_gmsil"]
@@ -290,14 +291,21 @@ animations = [{
 "speed": 8.0
 }]
 
-[node name="Chef" type="Node2D" unique_id=589437836]
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_q1jeg"]
+size = Vector2(12, 14)
+
+[node name="Chef" type="CharacterBody2D" unique_id=1481587763]
 z_index = 1
 scale = Vector2(2, 2)
+script = ExtResource("1_1uxjn")
 
 [node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="." unique_id=1997515129]
 editor_description = "Idle is 3.0 FPS.
 Walk is 8.0 FPS."
 texture_filter = 1
 sprite_frames = SubResource("SpriteFrames_q1jeg")
-animation = &"left_idle"
-frame_progress = 0.75471216
+frame_progress = 0.09034645
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1028983235]
+position = Vector2(0, 1)
+shape = SubResource("RectangleShape2D_q1jeg")
