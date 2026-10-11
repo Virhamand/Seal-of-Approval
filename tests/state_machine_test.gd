@@ -170,7 +170,7 @@ func run() -> void:
 	GameState.go(S.WALKING_ON_BEACH); GameState.go(S.TALKING_TO_SEAL); GameState.go(S.SEAL_MINI_GAME)
 	GameState.go(S.TALKING_TO_SEAL)   # debug-button shortcut
 	await frames(5)
-	check(game.popup != null and game.popup.name_label.text == "Berry Drink", "second unlock is Berry Drink")
+	check(game.popup != null and game.popup.name_label.text == "Smoothie", "second unlock is Smoothie")
 	await get_tree().create_timer(0.5).timeout
 	var click := InputEventMouseButton.new()
 	click.button_index = MOUSE_BUTTON_LEFT

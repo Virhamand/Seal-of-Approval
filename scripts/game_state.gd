@@ -36,9 +36,27 @@ const NAMES := {
 	State.SEAL_MINI_GAME: "Seal_mini_game",
 }
 
-## Recipes unlocked one per mini-game win, in the legacy game's order.
-const RECIPE_ORDER := ["Fish Sandwich", "Berry Drink", "Fish Soup", "Hot Cocoa",
-		"Seafood Stew", "Berry Smoothie", "Salmon Platter", "Iced Special"]
+## Recipes unlocked one per win (the first one by feeding the seal on day 1).
+## Fries and Water are on the menu from the start.
+const RECIPE_ORDER := ["Fish Sandwich", "Smoothie", "Fish Soup", "Fizzy Drink",
+		"Seafood Stew", "Salmon Platter"]
+
+## 16x16 menu icon for every recipe.
+const RECIPE_ICONS := {
+	"Fries": "res://sprites/sprite_sheets/fries_A.png",
+	"Water": "res://sprites/sprite_sheets/water_A.png",
+	"Fish Sandwich": "res://sprites/sprite_sheets/fish_sandwich_A.png",
+	"Smoothie": "res://sprites/sprite_sheets/smoothie_A.png",
+	"Fish Soup": "res://sprites/sprite_sheets/fish_soup_A.png",
+	"Fizzy Drink": "res://sprites/sprite_sheets/fizzy_drink_B.png",
+	"Seafood Stew": "res://sprites/sprite_sheets/seafood_stew_A.png",
+	"Salmon Platter": "res://sprites/sprite_sheets/salmon_platter_A.png",
+}
+
+
+## The menu icon for `recipe`, or null if it has none.
+static func recipe_icon(recipe: String) -> Texture2D:
+	return load(RECIPE_ICONS[recipe]) if recipe in RECIPE_ICONS else null
 
 signal state_changed(from: State, to: State)
 signal day_started(day: int)
