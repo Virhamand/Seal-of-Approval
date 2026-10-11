@@ -1,6 +1,6 @@
 [gd_scene format=4 uid="uid://du6innq6nxemi"]
 
-[ext_resource type="Script" uid="uid://c3m55lv6n3yrw" path="res://scenes/main.gd" id="1_o5qli"]
+[ext_resource type="Script" uid="uid://c3m55lv6n3yrw" path="res://scripts/main.gd" id="1_o5qli"]
 [ext_resource type="TileSet" uid="uid://b14okbdiabrf4" path="res://tiles/outdoor_tileset.tres" id="2_0wfyh"]
 
 [node name="Main" type="Node2D" unique_id=792299463]
