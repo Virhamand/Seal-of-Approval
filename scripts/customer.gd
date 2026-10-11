@@ -9,7 +9,7 @@ extends AnimatedSprite2D
 ##
 ## Animations: idle_/walk_/sit_/eat_ + down/left/right/up, plus "wave" and "happy".
 
-const SHEET := preload("res://sprites/customer_base.png")
+const SHEET := preload("res://sprites/sprite_sheets/customer_base.png")
 const RECOLOR_SHADER := preload("res://shaders/customer_recolor.gdshader")
 
 ## Preset colour lists. Edit these in the Inspector or here.
