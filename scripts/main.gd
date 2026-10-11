@@ -297,7 +297,9 @@ func _pan_to_seal(on_arrive: Callable = Callable()) -> void:
 	t.tween_callback(func():
 		_cutscene = false
 		if GameState.state == GameState.State.WALKING_ON_BEACH:
-			chef.can_move = true)
+			chef.can_move = true
+			if not GameState.seal_fed:   # day 1: point the player at the fainted seal
+				get_tree().call_group("game", "show_direction", "seal", GameState.state))
 
 
 ## Camera position after limits, so tweens don't "stick" at the map edge.

@@ -22,6 +22,19 @@ var _rating_panel: Control
 var _rating_bar: ProgressBar
 var _rating_value: Label
 var _end_layer: CanvasLayer
+var _direction_layer: CanvasLayer
+var _direction_label: Label
+## The state the direction box belongs to; it disappears when we leave it.
+var _direction_state := -1
+
+## Chef's "thinking out loud" direction boxes (edit the wording here).
+const DIRECTIONS := {
+	"walk": "Phew, that's everyone served! I think I'll take a walk on the beach.",
+	"unusual": "Huh? I hear an unusual sound outside... I should go check it out.",
+	"familiar": "I hear a familiar sound outside. I should go take a look.",
+	"seal": "That seal doesn't look so good... I should go check on it.",
+	"door": "Nothing going on out here yet. I should head back inside through the restaurant door.",
+}
 ## What "Return to Main Menu" does (tests swap this out).
 var go_to_main_menu := func(): get_tree().change_scene_to_file(TITLE_SCENE)
 ## One-shot jingles (small win / small loss / victory).
@@ -29,6 +42,7 @@ var sfx_player := AudioStreamPlayer.new()
 
 
 func _ready() -> void:
+	add_to_group("game")
 	_build_sounds()
 	_popup_layer = CanvasLayer.new()
 	_popup_layer.layer = 5
@@ -40,6 +54,7 @@ func _ready() -> void:
 	GameState.rating_changed.connect(func(_v): _update_rating_bar())
 	GameState.ending_reached.connect(_show_end_screen)
 	GameState.restarted.connect(_on_restarted)
+	GameState.service_finished.connect(_on_service_finished)
 	_show_state(GameState.state)
 
 
@@ -68,8 +83,13 @@ func _show_state(s: GameState.State) -> void:
 		level = load(path).instantiate()
 		level_root.add_child(level)
 		level_path = path
+	if s != _direction_state:
+		hide_direction()
 	if level.has_method("enter_state"):
 		level.enter_state(s)
+	if s == GameState.State.WALKING_ON_BEACH and GameState.seal_fed \
+			and not GameState.seal_calling() and not GameState.is_rating_full():
+		show_direction(DIRECTIONS.door, s)   # nothing for the chef to do out here yet
 	_update_recipe_popup()
 	_update_rating_bar()
 	_refresh_debug_ui()
@@ -152,6 +172,62 @@ func _star_texture() -> Texture2D:
 			if rows[y][x] == "#":
 				img.set_pixel(x, y, UiTheme.border)
 	return ImageTexture.create_from_image(img)
+
+
+# ---------------------------------------------------------------- direction boxes
+## Everyone has been served: tell the player where to go next.
+func _on_service_finished() -> void:
+	if GameState.state != GameState.State.RUNNING_RESTAURANT:
+		return
+	if GameState.day == 1:
+		show_direction(DIRECTIONS.walk, GameState.state)
+	elif GameState.seal_calling():
+		show_direction(DIRECTIONS.unusual if GameState.day == 2 else DIRECTIONS.familiar, GameState.state)
+
+
+## Show the chef's direction box at the bottom. `text` is a DIRECTIONS key or
+## any line. It stays (without blocking the game) until the player leaves
+## `for_state`. Levels reach it with
+## get_tree().call_group("game", "show_direction", "seal", GameState.state).
+func show_direction(text: String, for_state: int) -> void:
+	if _direction_layer == null:
+		_build_direction_box()
+	_direction_label.text = DIRECTIONS.get(text, text)
+	_direction_state = for_state
+	_direction_layer.show()
+
+
+func hide_direction() -> void:
+	_direction_state = -1
+	if _direction_layer:
+		_direction_layer.hide()
+
+
+func _build_direction_box() -> void:
+	_direction_layer = CanvasLayer.new()
+	_direction_layer.layer = 6
+	add_child(_direction_layer)
+	var holder := MarginContainer.new()
+	holder.theme = UiTheme.theme
+	holder.mouse_filter = Control.MOUSE_FILTER_IGNORE   # never blocks clicks in the level
+	holder.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE)
+	holder.grow_vertical = Control.GROW_DIRECTION_BEGIN
+	for side in ["left", "right", "bottom"]:
+		holder.add_theme_constant_override("margin_" + side, 16)
+	_direction_layer.add_child(holder)
+	var panel := PanelContainer.new()
+	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	holder.add_child(panel)
+	var box := VBoxContainer.new()
+	box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	panel.add_child(box)
+	var who := Label.new()
+	who.text = "Chef"
+	box.add_child(who)
+	_direction_label = Label.new()
+	_direction_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_direction_label.custom_minimum_size = Vector2(0, 36)
+	box.add_child(_direction_label)
 
 
 # ---------------------------------------------------------------- the end
