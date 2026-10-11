@@ -1,14 +1,13 @@
 extends Node2D
 ## Persistent root scene. Loads the level that belongs to the current
-## GameState, shows the recipe pop-up when one is waiting, and shows
-## temporary debug buttons for the legal next states.
+## GameState, plays its music, and shows the rating bar, the chef's direction
+## box, the recipe pop-up and The End screen.
 
 const RECIPE_POPUP := preload("res://scenes/new_recipe.tscn")
 const TITLE_SCENE := "res://scenes/title.tscn"
 const ROSETTE := preload("res://sprites/sprite_sheets/rosette.png")
 const SMALL_WIN := preload("res://assets/sounds/small_win.wav")
 const SMALL_LOSS := preload("res://assets/sounds/small_loss.wav")
-const VICTORY := preload("res://assets/sounds/victory.wav")
 
 @onready var level_root: Node2D = $Level
 
@@ -16,8 +15,6 @@ var level: Node = null
 var level_path := ""
 var popup: Node = null
 var _popup_layer: CanvasLayer
-var _label: Label
-var _buttons: HBoxContainer
 var _rating_panel: Control
 var _rating_bar: ProgressBar
 var _rating_value: Label
@@ -30,6 +27,8 @@ var _direction_state := -1
 ## Chef's "thinking out loud" direction boxes (edit the wording here).
 const DIRECTIONS := {
 	"walk": "Phew, that's everyone served! I think I'll take a walk on the beach.",
+	"full": "100 stars! And that sound again... I have to go tell the seal!",
+	"busy": "I can't leave with customers waiting!",
 	"unusual": "Huh? I hear an unusual sound outside... I should go check it out.",
 	"familiar": "I hear a familiar sound outside. I should go take a look.",
 	"seal": "That seal doesn't look so good... I should go check on it.",
@@ -37,7 +36,7 @@ const DIRECTIONS := {
 }
 ## What "Return to Main Menu" does (tests swap this out).
 var go_to_main_menu := func(): get_tree().change_scene_to_file(TITLE_SCENE)
-## One-shot jingles (small win / small loss / victory).
+## One-shot jingles (small win / small loss).
 var sfx_player := AudioStreamPlayer.new()
 
 
@@ -48,9 +47,8 @@ func _ready() -> void:
 	_popup_layer.layer = 5
 	add_child(_popup_layer)
 	_build_rating_bar()
-	_build_debug_ui()
 	GameState.state_changed.connect(_on_state_changed)
-	GameState.result_ready.connect(func(): _update_recipe_popup(); _refresh_debug_ui())
+	GameState.result_ready.connect(_update_recipe_popup)
 	GameState.rating_changed.connect(func(_v): _update_rating_bar())
 	GameState.ending_reached.connect(_show_end_screen)
 	GameState.restarted.connect(_on_restarted)
@@ -61,7 +59,7 @@ func _ready() -> void:
 func level_path_for(s: GameState.State) -> String:
 	match s:
 		GameState.State.RUNNING_RESTAURANT:
-			return "res://scenes/temp_restaurant_scene.tscn"
+			return "res://scenes/restaurant.tscn"
 		GameState.State.WALKING_ON_BEACH, GameState.State.TALKING_TO_SEAL:
 			return "res://scenes/main.tscn"   # the beach
 		GameState.State.SEAL_MINI_GAME:
@@ -85,6 +83,7 @@ func _show_state(s: GameState.State) -> void:
 		level_path = path
 	if s != _direction_state:
 		hide_direction()
+	Music.play(Music.track_for(s))
 	if level.has_method("enter_state"):
 		level.enter_state(s)
 	if s == GameState.State.WALKING_ON_BEACH and GameState.seal_fed \
@@ -92,11 +91,9 @@ func _show_state(s: GameState.State) -> void:
 		show_direction(DIRECTIONS.door, s)   # nothing for the chef to do out here yet
 	_update_recipe_popup()
 	_update_rating_bar()
-	_refresh_debug_ui()
 
 
 func _on_restarted() -> void:
-	sfx_player.stop()   # cut the victory jingle on Play again
 	if _end_layer:
 		_end_layer.queue_free()
 		_end_layer = null
@@ -128,7 +125,7 @@ func _build_rating_bar() -> void:
 	row.add_theme_constant_override("separation", 6)
 	panel.add_child(row)
 	var star := TextureRect.new()
-	star.texture = _star_texture()
+	star.texture = UiTheme.star_texture()
 	star.stretch_mode = TextureRect.STRETCH_KEEP_CENTERED
 	star.custom_minimum_size = Vector2(11, 11)
 	row.add_child(star)
@@ -152,28 +149,6 @@ func _update_rating_bar() -> void:
 	_rating_panel.visible = GameState.state != GameState.State.SEAL_MINI_GAME
 
 
-## A small pixel star in the theme's border colour.
-func _star_texture() -> Texture2D:
-	var rows := [
-		".....#.....",
-		".....#.....",
-		"....###....",
-		"###########",
-		".#########.",
-		"..#######..",
-		"..#######..",
-		".####.####.",
-		".###...###.",
-		"##.......##",
-	]
-	var img := Image.create(11, 10, false, Image.FORMAT_RGBA8)
-	for y in rows.size():
-		for x in rows[y].length():
-			if rows[y][x] == "#":
-				img.set_pixel(x, y, UiTheme.border)
-	return ImageTexture.create_from_image(img)
-
-
 # ---------------------------------------------------------------- direction boxes
 ## Everyone has been served: tell the player where to go next.
 func _on_service_finished() -> void:
@@ -181,6 +156,8 @@ func _on_service_finished() -> void:
 		return
 	if GameState.day == 1:
 		show_direction(DIRECTIONS.walk, GameState.state)
+	elif GameState.is_rating_full():
+		show_direction(DIRECTIONS.full, GameState.state)
 	elif GameState.seal_calling():
 		show_direction(DIRECTIONS.unusual if GameState.day == 2 else DIRECTIONS.familiar, GameState.state)
 
@@ -189,12 +166,18 @@ func _on_service_finished() -> void:
 ## any line. It stays (without blocking the game) until the player leaves
 ## `for_state`. Levels reach it with
 ## get_tree().call_group("game", "show_direction", "seal", GameState.state).
-func show_direction(text: String, for_state: int) -> void:
+## With `seconds` > 0 the box goes away by itself after that long.
+func show_direction(text: String, for_state: int, seconds := 0.0) -> void:
 	if _direction_layer == null:
 		_build_direction_box()
-	_direction_label.text = DIRECTIONS.get(text, text)
+	var line: String = DIRECTIONS.get(text, text)
+	_direction_label.text = line
 	_direction_state = for_state
 	_direction_layer.show()
+	if seconds > 0.0:
+		get_tree().create_timer(seconds).timeout.connect(func():
+			if _direction_layer.visible and _direction_label.text == line:
+				hide_direction())
 
 
 func hide_direction() -> void:
@@ -226,7 +209,6 @@ func _build_direction_box() -> void:
 	box.add_child(who)
 	_direction_label = Label.new()
 	_direction_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_direction_label.custom_minimum_size = Vector2(0, 36)
 	box.add_child(_direction_label)
 
 
@@ -234,7 +216,7 @@ func _build_direction_box() -> void:
 func _show_end_screen() -> void:
 	if _end_layer:
 		return
-	_play_sfx(VICTORY)
+	Music.play("ending")
 	_end_layer = CanvasLayer.new()
 	_end_layer.layer = 20
 	add_child(_end_layer)
@@ -330,46 +312,3 @@ func _update_recipe_popup() -> void:
 
 func _on_recipe_dismissed() -> void:
 	GameState.go(GameState.State.RUNNING_RESTAURANT)   # next day
-
-
-# ---------------------------------------------------------------- temporary debug UI
-func _build_debug_ui() -> void:
-	var layer := CanvasLayer.new()
-	layer.layer = 10
-	add_child(layer)
-	var panel := PanelContainer.new()
-	panel.theme = UiTheme.theme
-	panel.position = Vector2(4, 4)
-	layer.add_child(panel)
-	var box := VBoxContainer.new()
-	panel.add_child(box)
-	_label = Label.new()
-	box.add_child(_label)
-	_buttons = HBoxContainer.new()
-	box.add_child(_buttons)
-	var fill := Button.new()
-	fill.text = "Fill rating"
-	fill.focus_mode = Control.FOCUS_NONE
-	fill.pressed.connect(func(): GameState.set_rating(GameState.RATING_MAX))
-	var serve := Button.new()
-	serve.text = "Finish serving"
-	serve.focus_mode = Control.FOCUS_NONE
-	serve.pressed.connect(GameState.end_service)
-	var row := HBoxContainer.new()
-	row.add_child(fill)
-	row.add_child(serve)
-	box.add_child(row)
-
-
-func _refresh_debug_ui() -> void:
-	_label.text = "Day %d  |  %s" % [GameState.day, GameState.state_name(GameState.state)]
-	for b in _buttons.get_children():
-		b.queue_free()
-	for next in GameState.allowed_next():
-		var b := Button.new()
-		b.text = GameState.state_name(next)
-		if GameState.result_pending and next == GameState.State.RUNNING_RESTAURANT:
-			b.text += " (new day)"
-		b.focus_mode = Control.FOCUS_NONE   # so arrow keys / space never press it
-		b.pressed.connect(GameState.go.bind(next))
-		_buttons.add_child(b)

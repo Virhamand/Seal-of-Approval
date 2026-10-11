@@ -49,6 +49,7 @@ func _ready() -> void:
 
 	_build_food()
 	_build_ui()
+	Music.play("main_menu")
 
 
 ## The menu items, each rocking left and right (alternate ones start the other way).

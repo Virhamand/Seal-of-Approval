@@ -111,12 +111,8 @@ func run() -> void:
 	await wait(0.2)
 
 	print("== fill rating and go to the beach")
-	var fill: Button = null
-	for b in game.find_children("*", "Button", true, false):
-		if b.text == "Fill rating":
-			fill = b
-	fill.pressed.emit()
-	check(GameState.rating == 100 and game._rating_value.text == "100/100", "debug button fills the bar")
+	GameState.set_rating(GameState.RATING_MAX)
+	check(GameState.rating == 100 and game._rating_value.text == "100/100", "bar shows 100/100")
 	GameState.go(S.WALKING_ON_BEACH)
 	await wait(0.2)
 	beach = game.level

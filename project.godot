@@ -21,6 +21,7 @@ GameState="*res://scripts/game_state.gd"
 UiTheme="*res://scripts/ui_theme.gd"
 Settings="*res://scripts/settings.gd"
 SealCall="*res://scripts/seal_call.gd"
+Music="*res://scripts/music.gd"
 
 [display]
 

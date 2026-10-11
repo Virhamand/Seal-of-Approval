@@ -41,6 +41,31 @@ const NAMES := {
 const RECIPE_ORDER := ["Fish Sandwich", "Smoothie", "Fish Soup", "Fizzy Drink",
 		"Seafood Stew", "Salmon Platter"]
 
+## The menu: stars a dish earns when served, and what the chef takes out of the
+## fridge to make it ("" = a drink, served straight from the fridge).
+## Later dishes are worth a lot more, so a 4-day run reaches 100 stars
+## (see customers_for_rating() and pick_order()).
+const MENU := {
+	"Water": {"stars": 3, "ingredient": ""},
+	"Fries": {"stars": 4, "ingredient": "potato"},
+	"Fish Sandwich": {"stars": 8, "ingredient": "fish"},
+	"Smoothie": {"stars": 10, "ingredient": ""},
+	"Fish Soup": {"stars": 16, "ingredient": "fish"},
+	"Fizzy Drink": {"stars": 24, "ingredient": ""},
+	"Seafood Stew": {"stars": 36, "ingredient": "fish"},
+	"Salmon Platter": {"stars": 50, "ingredient": "fish"},
+}
+const INGREDIENT_ICONS := {
+	"potato": "res://sprites/sprite_sheets/potato.png",
+	"fish": "res://sprites/sprite_sheets/fish_B_snapper.png",   # first frame
+}
+## Customers per day: MIN_CUSTOMERS + one more per CUSTOMERS_PER_STARS stars, up to MAX_CUSTOMERS.
+const MIN_CUSTOMERS := 2
+const MAX_CUSTOMERS := 7
+const CUSTOMERS_PER_STARS := 7.0
+## Customers order the newest dish NEWEST_WEIGHT times as often as the one before it.
+const NEWEST_WEIGHT := 2
+
 ## 16x16 menu icon for every recipe.
 const RECIPE_ICONS := {
 	"Fries": "res://sprites/sprite_sheets/fries_A.png",
@@ -73,7 +98,7 @@ const RATING_MAX := 100
 
 var state: State = State.RUNNING_RESTAURANT
 var day := 1
-var unlocked_recipes: Array[String] = ["Fries", "Water"]
+var unlocked_recipes: Array[String] = ["Water", "Fries"]
 ## True between finishing the mini-game and starting the next day.
 var result_pending := false
 ## Whether the last mini-game was won (caught every fish before time ran out).
@@ -100,6 +125,11 @@ var service_done := false
 var seal_answered := false
 ## The mini-game tutorial has been shown.
 var tutorial_seen := false
+## The cooking tutorial (first day in the restaurant) has been shown.
+var cooking_tutorial_seen := false
+## Today's service: how many customers come, and how many have been dealt with.
+var customers_today := 0
+var customers_done := 0
 
 
 func allowed_next() -> Array:
@@ -131,6 +161,8 @@ func go(to: State) -> bool:
 		result_pending = false
 		service_done = false
 		seal_answered = false
+		customers_today = 0
+		customers_done = 0
 		day += 1
 		day_started.emit(day)
 	print("[GameState] day %d: %s -> %s" % [day, state_name(from), state_name(to)])
@@ -181,6 +213,49 @@ func end_service() -> void:
 	service_finished.emit()
 
 
+## Work out today's customer count from the rating (once per day).
+func start_service() -> void:
+	if customers_today == 0:
+		customers_today = customers_for_rating(rating)
+
+
+static func customers_for_rating(stars: int) -> int:
+	return clampi(MIN_CUSTOMERS + int(stars / CUSTOMERS_PER_STARS), MIN_CUSTOMERS, MAX_CUSTOMERS)
+
+
+## What the next customer orders: the newest dish most of the time, otherwise the one before it.
+func pick_order() -> String:
+	var n := unlocked_recipes.size()
+	if n < 2 or randi() % (NEWEST_WEIGHT + 1) < NEWEST_WEIGHT:
+		return unlocked_recipes[n - 1]
+	return unlocked_recipes[n - 2]
+
+
+static func stars_for(recipe: String) -> int:
+	return MENU[recipe].stars if recipe in MENU else 1
+
+
+static func ingredient_of(recipe: String) -> String:
+	return MENU[recipe].ingredient if recipe in MENU else ""
+
+
+static func is_drink(recipe: String) -> bool:
+	return ingredient_of(recipe) == ""
+
+
+## The 16x16 picture of an ingredient ("potato", "fish").
+static func ingredient_icon(ingredient: String) -> Texture2D:
+	if ingredient not in INGREDIENT_ICONS:
+		return null
+	var tex: Texture2D = load(INGREDIENT_ICONS[ingredient])
+	if ingredient == "fish":
+		var frame := AtlasTexture.new()   # the fish sheet: take the first swim frame
+		frame.atlas = tex
+		frame.region = Rect2(0, 0, 16, 16)
+		return frame
+	return tex
+
+
 ## Should the seal be making its call right now?
 func seal_calling() -> bool:
 	return seal_fed and day >= 2 and service_done and not seal_answered and not ending
@@ -214,7 +289,7 @@ func restart() -> void:
 func reset() -> void:
 	state = State.RUNNING_RESTAURANT
 	day = 1
-	unlocked_recipes = ["Fries", "Water"]
+	unlocked_recipes = ["Water", "Fries"]
 	result_pending = false
 	last_won = false
 	last_recipe = ""
@@ -227,6 +302,9 @@ func reset() -> void:
 	service_done = false
 	seal_answered = false
 	tutorial_seen = false
+	cooking_tutorial_seen = false
+	customers_today = 0
+	customers_done = 0
 	rating_changed.emit(rating)
 
 

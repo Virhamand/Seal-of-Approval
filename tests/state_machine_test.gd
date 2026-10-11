@@ -65,8 +65,8 @@ func run() -> void:
 	await frames(5)
 
 	print("== Running_restaurant")
-	check(game.level_path.ends_with("temp_restaurant_scene.tscn"), "restaurant scene loaded")
-	check(buttons() == ["Walking_on_Beach"], "buttons: %s" % [buttons()])
+	check(game.level_path.ends_with("restaurant.tscn"), "restaurant scene loaded")
+	check(buttons() == ["Walking_on_Beach"], "next states: %s" % [buttons()])
 	check(not GameState.go(S.SEAL_MINI_GAME), "Running_restaurant -> Seal_mini_game refused")
 
 	print("== Walking_on_Beach -> Talking_to_Seal")
@@ -78,7 +78,7 @@ func run() -> void:
 	check(GameState.go(S.TALKING_TO_SEAL), "talk to seal")
 	await frames(5)
 	check(game.popup == null, "no recipe pop-up before the mini-game")
-	check(buttons() == ["Walking_on_Beach", "Seal_mini_game"], "buttons: %s" % [buttons()])
+	check(buttons() == ["Walking_on_Beach", "Seal_mini_game"], "next states: %s" % [buttons()])
 
 	print("== Seal_mini_game")
 	check(GameState.go(S.SEAL_MINI_GAME), "start mini-game")
@@ -90,7 +90,7 @@ func run() -> void:
 	var tl: Control = sea._timer_label
 	var vp := get_viewport().get_visible_rect().size
 	check(tl.get_global_rect().end.x > vp.x * 0.85 and tl.get_global_rect().position.y < vp.y * 0.15, "timer sits in the top-right corner")
-	check(buttons() == ["Talking_to_Seal"], "buttons: %s" % [buttons()])
+	check(buttons() == ["Talking_to_Seal"], "next states: %s" % [buttons()])
 	# swim around for a few seconds: at least one fish must be on screen every frame
 	var always_visible := true
 	var max_fish := 0
@@ -149,7 +149,7 @@ func run() -> void:
 	check(game.popup != null and game.popup.is_inside_tree(), "recipe pop-up shown")
 	check(game.popup.name_label.text == "Fish Sandwich", "first unlock is Fish Sandwich (got %s)" % game.popup.name_label.text)
 	check("Fish Sandwich" in GameState.unlocked_recipes, "recipe added to unlocked list")
-	check(buttons() == ["Running_restaurant (new day)"], "buttons: %s" % [buttons()])
+	check(buttons() == ["Running_restaurant (new day)"], "next states: %s" % [buttons()])
 	check(not GameState.go(S.SEAL_MINI_GAME), "can't replay the mini-game while the recipe is waiting")
 	await get_tree().create_timer(0.5).timeout
 	await shot("3_recipe_popup")
@@ -164,7 +164,7 @@ func run() -> void:
 	check(GameState.state == S.RUNNING_RESTAURANT, "key press starts the next day")
 	check(GameState.day == 2, "day counter is 2")
 	check(game.popup == null, "pop-up closed")
-	check(game.level_path.ends_with("temp_restaurant_scene.tscn"), "back in the restaurant")
+	check(game.level_path.ends_with("restaurant.tscn"), "back in the restaurant")
 
 	print("== second win unlocks the next recipe, mouse click continues")
 	GameState.go(S.WALKING_ON_BEACH); GameState.go(S.TALKING_TO_SEAL); GameState.go(S.SEAL_MINI_GAME)
@@ -195,7 +195,7 @@ func run() -> void:
 	check(GameState.state == S.TALKING_TO_SEAL and not GameState.last_won, "back to Talking_to_Seal as a loss")
 	check(GameState.unlocked_recipes.size() == recipes_before, "no recipe unlocked")
 	check(game.popup != null and game.popup.title.text == "Out of time!", "pop-up says Out of time!")
-	check(buttons() == ["Running_restaurant (new day)"], "buttons: %s" % [buttons()])
+	check(buttons() == ["Running_restaurant (new day)"], "next states: %s" % [buttons()])
 	await get_tree().create_timer(0.5).timeout
 	await shot("5_out_of_time")
 	var ev2 := InputEventKey.new()
@@ -220,11 +220,14 @@ func hold(action: String, seconds: float) -> void:
 	await frames(2)
 
 
+## The legal next states, named the way the old debug buttons were.
 func buttons() -> Array:
 	var out := []
-	for b in game._buttons.get_children():
-		if not b.is_queued_for_deletion():
-			out.append(b.text)
+	for next in GameState.allowed_next():
+		var text: String = GameState.state_name(next)
+		if GameState.result_pending and next == S.RUNNING_RESTAURANT:
+			text += " (new day)"
+		out.append(text)
 	return out
 
 

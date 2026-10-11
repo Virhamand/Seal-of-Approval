@@ -36,7 +36,7 @@ const FEED_TEXT := "[F] Feed malnourished seal Fries and Water"
 const PLAY_TEXT := "[F] Play"
 const TALK_TEXT := "[F] Talk"
 const CONGRATS := [
-	"You did it! 100 rating!",
+	"You did it! 100 stars!",
 	"The whole shore is talking about your cooking.",
 	"Thanks for the fries and water on that first day. Best meal of my life.",
 ]

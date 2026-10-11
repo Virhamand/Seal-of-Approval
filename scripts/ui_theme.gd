@@ -31,6 +31,34 @@ func _ready() -> void:
 	get_tree().root.theme = theme
 
 
+var _star: Texture2D
+
+
+## A small pixel star in the border colour (rating bar, "+8" floats).
+func star_texture() -> Texture2D:
+	if _star:
+		return _star
+	var rows := [
+		".....#.....",
+		".....#.....",
+		"....###....",
+		"###########",
+		".#########.",
+		"..#######..",
+		"..#######..",
+		".####.####.",
+		".###...###.",
+		"##.......##",
+	]
+	var img := Image.create(11, 10, false, Image.FORMAT_RGBA8)
+	for y in rows.size():
+		for x in rows[y].length():
+			if rows[y][x] == "#":
+				img.set_pixel(x, y, border)
+	_star = ImageTexture.create_from_image(img)
+	return _star
+
+
 ## Rebuild `theme` after changing colours at runtime.
 func rebuild() -> void:
 	var t := Theme.new()
