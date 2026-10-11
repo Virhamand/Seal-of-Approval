@@ -624,6 +624,7 @@ animations = [{
 }]
 
 [node name="Seal" type="Node2D" unique_id=1646509292]
+z_index = 1
 scale = Vector2(4, 4)
 
 [node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="." unique_id=327066337]

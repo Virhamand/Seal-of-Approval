@@ -291,6 +291,7 @@ animations = [{
 }]
 
 [node name="Chef" type="Node2D" unique_id=589437836]
+z_index = 1
 scale = Vector2(2, 2)
 
 [node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="." unique_id=1997515129]
