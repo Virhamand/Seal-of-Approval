@@ -1,0 +1,6 @@
+[gd_scene format=3 uid="uid://gmmtkgpuim5a"]
+
+[ext_resource type="Script" uid="uid://spa323t18rt5" path="res://scenes/customer_view.gd" id="1_erf48"]
+
+[node name="CustomerView" type="Node2D" unique_id=500223032]
+script = ExtResource("1_erf48")

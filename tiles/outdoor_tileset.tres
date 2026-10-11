@@ -1,6 +1,6 @@
-[gd_resource type="TileSet" load_steps=3 format=3]
+[gd_resource type="TileSet" format=3 uid="uid://b14okbdiabrf4"]
 
-[ext_resource type="Texture2D" path="res://tiles/outdoor_tileset.png" id="1_4tpbj"]
+[ext_resource type="Texture2D" uid="uid://bmiegrqv28dx3" path="res://tiles/outdoor_tileset.png" id="1_4tpbj"]
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_8ushl"]
 resource_name = "Beach"
