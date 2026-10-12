@@ -1,9 +1,10 @@
 extends Node
 ## Volume settings (autoload: Settings).
 ##
-## Adds two audio buses that feed Master: "Music" and "SFX". Put music players
-## on bus "Music" and sound effects on bus "SFX" (Settings.MUSIC_BUS / SFX_BUS).
-## Volumes go from 0 to 1 and are saved to user://settings.cfg.
+## The "Music" and "SFX" buses live in default_bus_layout.tres (made in the
+## editor: buses created from code are silent in the web export). Put music
+## players on bus "Music" and sound effects on bus "SFX" (Settings.MUSIC_BUS /
+## SFX_BUS). Volumes go from 0 to 1 and are saved to user://settings.cfg.
 
 const MUSIC_BUS := "Music"
 const SFX_BUS := "SFX"
@@ -16,10 +17,7 @@ var sfx_volume := 1.0
 func _ready() -> void:
 	for b in [MUSIC_BUS, SFX_BUS]:
 		if AudioServer.get_bus_index(b) == -1:
-			var i := AudioServer.bus_count
-			AudioServer.add_bus(i)
-			AudioServer.set_bus_name(i, b)
-			AudioServer.set_bus_send(i, "Master")
+			push_error("Settings: audio bus '%s' is missing from default_bus_layout.tres" % b)
 	_load()
 	_apply()
 
@@ -43,6 +41,8 @@ func _apply() -> void:
 
 func _set_bus(bus: String, v: float) -> void:
 	var i := AudioServer.get_bus_index(bus)
+	if i == -1:
+		return
 	AudioServer.set_bus_volume_db(i, linear_to_db(maxf(v, 0.0001)))
 	AudioServer.set_bus_mute(i, v <= 0.0)
 

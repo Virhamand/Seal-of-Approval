@@ -27,16 +27,18 @@ var call_player := AudioStreamPlayer.new()
 var wah_player := AudioStreamPlayer.new()
 ## Belly slaps, on loop while the seal congratulates the chef.
 var slap_player := AudioStreamPlayer.new()
-var _filter := AudioEffectLowPassFilter.new()
+## The low-pass filter on the "SealCall" bus (default_bus_layout.tres, made in
+## the editor: buses created from code are silent in the web export).
+var _filter: AudioEffectLowPassFilter
 
 
 func _ready() -> void:
-	# a bus with a low-pass filter so the call can be muffled
-	var idx := AudioServer.bus_count
-	AudioServer.add_bus(idx)
-	AudioServer.set_bus_name(idx, BUS)
-	AudioServer.set_bus_send(idx, Settings.SFX_BUS)   # follows the Sound Effects volume
-	AudioServer.add_bus_effect(idx, _filter)
+	var idx := AudioServer.get_bus_index(BUS)
+	if idx != -1 and AudioServer.get_bus_effect_count(idx) > 0:
+		_filter = AudioServer.get_bus_effect(idx, 0) as AudioEffectLowPassFilter
+	if _filter == null:
+		push_error("SealCall: bus '%s' with a LowPassFilter is missing from default_bus_layout.tres" % BUS)
+		_filter = AudioEffectLowPassFilter.new()   # unused, keeps _apply() safe
 
 	var looped: AudioStreamMP3 = SOUND.duplicate()
 	looped.loop = true
